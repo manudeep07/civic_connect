@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ profile_user.display_name }} – CivicConnect Profile{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row g-4">
+    <!-- Left Column: User Summary Card -->
+    <div class="col-lg-4">
+      <div class="card card-civic-flat p-4 border-0 shadow-sm text-center">
+        <div class="mb-3 position-relative d-inline-block">
+          {% if profile_user.avatar %}
+            <img src="{{ profile_user.avatar.url }}" alt="{{ profile_user.username }}" class="rounded-circle shadow-sm border border-3 border-white" width="110" height="110" style="object-fit: cover;">
+          {% else %}
+            <div class="rounded-circle bg-light d-flex align-items-center justify-content-center mx-auto text-primary shadow-sm" style="width: 110px; height: 110px;">
+              <i class="bi bi-person-fill fs-1"></i>
+            </div>
+          {% endif %}
+        </div>
+
+        <h4 class="fw-bold mb-1 text-dark">{{ profile_user.display_name }}</h4>
+        <div class="text-muted small mb-2">@{{ profile_user.username }}</div>
+        <div>
+          <span class="badge badge-role {{ profile_user.get_role_badge_class }} mb-3">
+            {{ profile_user.get_role_display }}
+          </span>
+        </div>
+
+        {% if profile_user.institution_name %}
+          <div class="p-2 rounded-3 bg-light border small text-dark mb-3">
+            <i class="bi bi-building text-teal me-1"></i> <strong>{{ profile_user.institution_name }}</strong>
+          </div>
+        {% endif %}
+
+        {% if profile_user.location %}
+          <div class="text-muted small mb-2">
+            <i class="bi bi-geo-alt text-danger me-1"></i> {{ profile_user.location }}
+          </div>
+        {% endif %}
+
+        {% if profile_user.website %}
+          <div class="small mb-3">
+            <a href="{{ profile_user.website }}" target="_blank" class="text-decoration-none text-teal">
+              <i class="bi bi-link-45deg me-1"></i> {{ profile_user.website|truncatechars:35 }}
+            </a>
+          </div>
+        {% endif %}
+
+        {% if profile_user.bio %}
+          <p class="small text-secondary text-start p-3 bg-light rounded-3 mb-4">
+            {{ profile_user.bio }}
+          </p>
+        {% endif %}
+
+        {% if is_own_profile %}
+          <div class="d-grid gap-2">
+            <a href="{% url 'accounts:edit_profile' %}" class="btn btn-outline-civic-teal btn-sm">
+              <i class="bi bi-pencil-square me-1"></i> Edit Profile
+            </a>
+            <a href="{% url 'accounts:change_password' %}" class="btn btn-outline-secondary btn-sm">
+              <i class="bi bi-key me-1"></i> Change Password
+            </a>
+          </div>
+        {% else %}
+          {% if user.is_authenticated and profile_user.role in 'university industry' %}
+            <a href="{% url 'partnerships:request_create' %}?target={{ profile_user.id }}" class="btn btn-civic-teal btn-sm w-100">
+              <i class="bi bi-handshake me-1"></i> Propose Partnership
+            </a>
+          {% endif %}
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Right Column: Stats & Activity Stream -->
+    <div class="col-lg-8">
+      <!-- Quick Metric Counters -->
+      <div class="row g-3 mb-4">
+        <div class="col-md-4">
+          <div class="card card-civic-flat p-3 text-center border-0 shadow-sm">
+            <div class="fs-4 fw-bold text-dark">{{ challenges_count|default:profile_user.challenges.count }}</div>
+            <div class="small text-muted"><i class="bi bi-flag text-info me-1"></i> Challenges</div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card card-civic-flat p-3 text-center border-0 shadow-sm">
+            <div class="fs-4 fw-bold text-dark">{{ solutions_count|default:profile_user.solutions.count }}</div>
+            <div class="small text-muted"><i class="bi bi-lightbulb text-warning me-1"></i> Solutions</div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card card-civic-flat p-3 text-center border-0 shadow-sm">
+            <div class="fs-4 fw-bold text-dark">{{ projects_count|default:profile_user.led_projects.count }}</div>
+            <div class="small text-muted"><i class="bi bi-kanban text-success me-1"></i> Projects Led</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Activity Timeline -->
+      <div class="card card-civic-flat p-4 border-0 shadow-sm">
+        <h5 class="fw-bold text-dark mb-4 pb-2 border-bottom">
+          <i class="bi bi-activity text-teal me-2"></i> Recent Platform Activity
+        </h5>
+
+        {% if activities %}
+          <div class="timeline ps-2">
+            {% for act in activities %}
+              <div class="d-flex align-items-start gap-3 mb-3 pb-3 border-bottom border-light">
+                <div class="p-2 rounded-circle bg-light text-teal shadow-xs">
+                  <i class="bi bi-check2-circle fs-5"></i>
+                </div>
+                <div class="flex-grow-1">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <span class="fw-semibold text-dark small">
+                      {% if act.link %}
+                        <a href="{{ act.link }}" class="text-decoration-none text-dark hover-teal">{{ act.title }}</a>
+                      {% else %}
+                        {{ act.title }}
+                      {% endif %}
+                    </span>
+                    <span class="text-muted small">{{ act.created_at|timesince }} ago</span>
+                  </div>
+                  {% if act.description %}
+                    <p class="small text-muted mb-0 mt-1">{{ act.description }}</p>
+                  {% endif %}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-center py-4 text-muted small">
+            No recent activity recorded yet.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

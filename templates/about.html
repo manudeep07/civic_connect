@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+
+{% block title %}About CivicConnect – INT253 Course Outcomes Mapping{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-10">
+      <!-- Header -->
+      <div class="text-center mb-5">
+        <span class="badge bg-primary text-uppercase px-3 py-2 rounded-pill fw-semibold mb-2">INT253 Course Project</span>
+        <h1 class="display-5 fw-bold text-dark">CivicConnect Architecture & Outcomes</h1>
+        <p class="lead text-muted">A full-stack Django platform mapping modern software engineering principles with INT253 Course Outcomes.</p>
+      </div>
+
+      <!-- Overview Card -->
+      <div class="card card-civic-flat p-4 mb-4 border-0 shadow-sm">
+        <h4 class="fw-bold text-dark mb-3"><i class="bi bi-info-circle-fill text-primary me-2"></i>Project Mission</h4>
+        <p class="text-secondary mb-0">
+          <strong>CivicConnect</strong> is a societal challenge crowdsourcing and co-solution platform that bridges the gap between citizens reporting real-world challenges, students innovating sustainable answers, academic institutions offering research mentorship, and industry leaders sponsoring pilot implementations.
+        </p>
+      </div>
+
+      <!-- INT253 Course Outcomes Mapping Grid -->
+      <h3 class="fw-bold text-dark mt-5 mb-4"><i class="bi bi-check2-circle text-success me-2"></i>Demonstration of INT253 Course Outcomes</h3>
+
+      <div class="row g-4">
+        <!-- CO1 -->
+        <div class="col-md-6">
+          <div class="card card-civic h-100 p-4 border-0">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="badge bg-primary fs-6">CO1</span>
+              <h5 class="fw-bold mb-0 text-dark">Installation & App Structuring</h5>
+            </div>
+            <p class="small text-muted mb-3">Project creation, settings configuration, and modular multi-app architecture.</p>
+            <ul class="small text-secondary ps-3 mb-0">
+              <li>Configured Django with clean settings separation.</li>
+              <li>Divided monolithic concerns into 6 modular apps: <code>accounts</code>, <code>challenges</code>, <code>solutions</code>, <code>collaborations</code>, <code>partnerships</code>, and <code>dashboard</code>.</li>
+              <li>Configured static files, media uploads, and custom context processors.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- CO2 -->
+        <div class="col-md-6">
+          <div class="card card-civic h-100 p-4 border-0">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="badge bg-success fs-6">CO2</span>
+              <h5 class="fw-bold mb-0 text-dark">Views, URLs & HTTP Methods</h5>
+            </div>
+            <p class="small text-muted mb-3">URL routing, RESTful design patterns, and HTTP request/response lifecycles.</p>
+            <ul class="small text-secondary ps-3 mb-0">
+              <li>App-level URL namespacing (<code>challenges:list</code>, <code>dashboard:index</code>).</li>
+              <li>Multi-criteria GET queries: searching by title/keyword, filtering by category, severity, status, and sorting.</li>
+              <li>Built-in pagination with <code>Paginator</code> handling dynamic page numbers and empty edge cases.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- CO3 -->
+        <div class="col-md-6">
+          <div class="card card-civic h-100 p-4 border-0">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="badge bg-info text-dark fs-6">CO3</span>
+              <h5 class="fw-bold mb-0 text-dark">Django Templates & UI</h5>
+            </div>
+            <p class="small text-muted mb-3">Template inheritance, dynamic tags, context processors, and responsive UI.</p>
+            <ul class="small text-secondary ps-3 mb-0">
+              <li>Master template <code>base.html</code> with modular blocks and modern navbar.</li>
+              <li>Custom context processor <code>user_roles_processor</code> exposing role flags across all templates.</li>
+              <li>Modern Bootstrap 5 UI, responsive cards, and clean typography.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- CO4 -->
+        <div class="col-md-6">
+          <div class="card card-civic h-100 p-4 border-0">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="badge bg-warning text-dark fs-6">CO4</span>
+              <h5 class="fw-bold mb-0 text-dark">Django Forms & Validation</h5>
+            </div>
+            <p class="small text-muted mb-3">ModelForms, field widgets, CSRF tokens, and custom clean() validation.</p>
+            <ul class="small text-secondary ps-3 mb-0">
+              <li>Custom <code>UserRegistrationForm</code> with password confirmation and role-specific validation.</li>
+              <li><code>ChallengeForm</code>, <code>SolutionForm</code>, <code>ProjectForm</code>, and <code>PartnershipRequestForm</code>.</li>
+              <li>Enforced CSRF protection on all POST requests and server-side validation error displays.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- CO5 -->
+        <div class="col-md-6">
+          <div class="card card-civic h-100 p-4 border-0">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="badge bg-danger fs-6">CO5</span>
+              <h5 class="fw-bold mb-0 text-dark">Models, ORM & Django Admin</h5>
+            </div>
+            <p class="small text-muted mb-3">Relational database schemas, migrations, aggregations, and admin customization.</p>
+            <ul class="small text-secondary ps-3 mb-0">
+              <li>10 relational models: <code>CustomUser</code>, <code>Category</code>, <code>Challenge</code>, <code>Vote</code>, <code>Comment</code>, <code>Solution</code>, <code>Project</code>, <code>ProjectMembership</code>, <code>PartnershipRequest</code>, <code>Activity</code>.</li>
+              <li>Relational constraints: <code>ForeignKey</code>, <code>UniqueConstraint</code> (one vote per user, unique project memberships).</li>
+              <li>Customized Django Admin with 1-click batch actions (e.g., Approve Challenges, Reject Challenges).</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- CO6 -->
+        <div class="col-md-6">
+          <div class="card card-civic h-100 p-4 border-0">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="badge bg-dark fs-6">CO6</span>
+              <h5 class="fw-bold mb-0 text-dark">Sessions, Cookies & Auth</h5>
+            </div>
+            <p class="small text-muted mb-3">Authentication framework, session security, and role-based access control.</p>
+            <ul class="small text-secondary ps-3 mb-0">
+              <li>Django authentication with secure password hashing (PBKDF2).</li>
+              <li>4 distinct roles: Citizen/Student, University, Industry, and Platform Administrator.</li>
+              <li>Role-specific dashboards dynamically query DB stats based on user session.</li>
+              <li>Django Messages Framework communicating flash notifications.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Action -->
+      <div class="text-center mt-5">
+        <a href="{% url 'challenges:list' %}" class="btn btn-civic-teal btn-lg px-4 me-2">Explore Live Platform</a>
+        <a href="{% url 'accounts:register' %}" class="btn btn-outline-secondary btn-lg px-4">Create Test Account</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,238 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ project.title }} – Collaborative Project Workspace{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <!-- Breadcrumb -->
+  <nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb small">
+      <li class="breadcrumb-item"><a href="{% url 'home' %}" class="text-decoration-none text-muted">Home</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'collaborations:list' %}" class="text-decoration-none text-muted">Projects</a></li>
+      <li class="breadcrumb-item active text-truncate" style="max-width: 300px;" aria-current="page">{{ project.title }}</li>
+    </ol>
+  </nav>
+
+  <!-- Project Header Card -->
+  <div class="card card-civic-flat p-4 p-md-5 border-0 shadow-sm mb-4">
+    <div class="d-flex flex-wrap align-items-center justify-content-between mb-3 gap-2">
+      <div class="d-flex align-items-center gap-2">
+        <span class="badge {{ project.get_status_badge_class }} fs-6">{{ project.get_status_display }}</span>
+        <span class="badge bg-light text-dark border">
+          <i class="bi bi-people-fill text-teal me-1"></i> {{ memberships.count }} Team Member{{ memberships.count|pluralize }}
+        </span>
+      </div>
+
+      <div class="d-flex align-items-center gap-2">
+        {% if is_lead %}
+          <a href="{% url 'collaborations:edit' project.pk %}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-pencil me-1"></i> Update Progress & Milestones
+          </a>
+        {% endif %}
+
+        {% if user.is_authenticated and not is_member %}
+          <form method="post" action="{% url 'collaborations:join' project.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-civic-teal btn-sm shadow-sm">
+              <i class="bi bi-person-plus-fill me-1"></i> Join Project Team
+            </button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+
+    <h1 class="h2 fw-bold text-dark mb-2">{{ project.title }}</h1>
+
+    <div class="d-flex flex-wrap align-items-center gap-3 text-muted small mb-4">
+      <span><i class="bi bi-person-badge text-primary me-1"></i> Project Lead: <strong>{{ project.lead.display_name }}</strong></span>
+      {% if project.start_date %}
+        <span><i class="bi bi-calendar-event text-success me-1"></i> Started: {{ project.start_date|date:"M d, Y" }}</span>
+      {% endif %}
+      {% if project.expected_completion_date %}
+        <span><i class="bi bi-calendar-check text-danger me-1"></i> Target: {{ project.expected_completion_date|date:"M d, Y" }}</span>
+      {% endif %}
+    </div>
+
+    <!-- Progress Meter -->
+    <div class="p-3 rounded-3 bg-light border mb-4">
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <span class="small fw-bold text-dark">Overall Completion Progress</span>
+        <span class="small fw-bold text-teal fs-6">{{ project.progress_percentage }}%</span>
+      </div>
+      <div class="progress progress-civic" style="height: 10px;">
+        <div class="progress-bar" role="progressbar" style="width: {{ project.progress_percentage }}%;" aria-valuenow="{{ project.progress_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+      </div>
+    </div>
+
+    <!-- Description -->
+    <div class="mb-2">
+      <h5 class="fw-bold text-dark mb-2"><i class="bi bi-card-text text-teal me-2"></i> Project Scope & Objectives</h5>
+      <div class="text-secondary lh-lg" style="white-space: pre-line;">{{ project.description }}</div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Left Column: Team Management -->
+    <div class="col-lg-8">
+      <!-- Team Members Card -->
+      <div class="card card-civic-flat p-4 border-0 shadow-sm mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+          <div>
+            <h4 class="fw-bold text-dark mb-0"><i class="bi bi-people text-teal me-2"></i> Project Team</h4>
+            <small class="text-muted">Interdisciplinary members working on this initiative</small>
+          </div>
+          {% if is_lead %}
+            <button class="btn btn-outline-civic-teal btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#addMemberCollapse" aria-expanded="false">
+              <i class="bi bi-person-plus me-1"></i> Add Member
+            </button>
+          {% endif %}
+        </div>
+
+        <!-- Add Member Form Collapse (for Project Lead) -->
+        {% if is_lead and member_form %}
+          <div class="collapse mb-4" id="addMemberCollapse">
+            <div class="card p-3 bg-light border">
+              <h6 class="fw-bold text-dark mb-3">Add Registered User to Project</h6>
+              <form method="post" action="{% url 'collaborations:member_add' project.pk %}">
+                {% csrf_token %}
+                <div class="row g-2 align-items-center">
+                  <div class="col-md-6">
+                    <label class="form-label small fw-semibold">Select User</label>
+                    {{ member_form.user }}
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-semibold">Designated Role</label>
+                    {{ member_form.role }}
+                  </div>
+                  <div class="col-md-2 d-grid align-self-end">
+                    <button type="submit" class="btn btn-civic-teal btn-sm py-2">Add</button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+        {% endif %}
+
+        <!-- Members Table -->
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light small">
+              <tr>
+                <th>Member</th>
+                <th>Stakeholder Role</th>
+                <th>Project Role</th>
+                <th>Joined</th>
+                {% if is_lead %}<th class="text-end">Action</th>{% endif %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for membership in memberships %}
+                <tr>
+                  <td>
+                    <div class="d-flex align-items-center gap-2">
+                      <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center fw-bold small" style="width: 32px; height: 32px;">
+                        {{ membership.user.username|first|upper }}
+                      </div>
+                      <div>
+                        <div class="fw-semibold text-dark small">
+                          <a href="{% url 'accounts:user_detail' membership.user.username %}" class="text-decoration-none text-dark hover-teal">
+                            {{ membership.user.display_name }}
+                          </a>
+                        </div>
+                        <small class="text-muted">@{{ membership.user.username }}</small>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="badge badge-role {{ membership.user.get_role_badge_class }}" style="font-size: 0.65rem;">
+                      {{ membership.user.get_role_display }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="fw-semibold text-dark small">{{ membership.role }}</span>
+                  </td>
+                  <td class="small text-muted">
+                    {{ membership.joined_at|date:"M d, Y" }}
+                  </td>
+                  {% if is_lead %}
+                    <td class="text-end">
+                      {% if membership.user != project.lead %}
+                        <form method="post" action="{% url 'collaborations:member_remove' project.pk membership.pk %}" class="d-inline">
+                          {% csrf_token %}
+                          <button type="submit" class="btn btn-link text-danger p-0" title="Remove member" onclick="return confirm('Remove {{ membership.user.display_name }} from project?');">
+                            <i class="bi bi-trash"></i>
+                          </button>
+                        </form>
+                      {% else %}
+                        <span class="badge bg-secondary" style="font-size: 0.65rem;">Owner</span>
+                      {% endif %}
+                    </td>
+                  {% endif %}
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="5" class="text-center text-muted small py-3">No members added yet.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Associated Challenge & Solution -->
+    <div class="col-lg-4">
+      <!-- Challenge Info Card -->
+      <div class="card card-civic-flat p-4 border-0 shadow-sm mb-4">
+        <span class="badge bg-light text-muted border mb-2 text-uppercase small">Underlying Challenge</span>
+        <h5 class="fw-bold text-dark mb-2">
+          <a href="{% url 'challenges:detail' project.challenge.pk %}" class="text-decoration-none text-dark hover-teal">
+            {{ project.challenge.title }}
+          </a>
+        </h5>
+        <div class="d-flex align-items-center gap-2 mb-3">
+          <span class="badge {{ project.challenge.get_severity_badge_class }}">{{ project.challenge.get_problem_severity_display }} Severity</span>
+          <span class="badge bg-light text-dark border">{{ project.challenge.category.name }}</span>
+        </div>
+        <p class="small text-muted mb-3">{{ project.challenge.description|truncatewords:20 }}</p>
+        <a href="{% url 'challenges:detail' project.challenge.pk %}" class="btn btn-outline-secondary btn-sm w-100">
+          View Challenge <i class="bi bi-arrow-right ms-1"></i>
+        </a>
+      </div>
+
+      <!-- Solution Info Card (if linked) -->
+      {% if project.solution %}
+        <div class="card card-civic-flat p-4 border-0 shadow-sm mb-4">
+          <span class="badge bg-success-subtle text-success border border-success mb-2 text-uppercase small">Adopted Solution</span>
+          <h5 class="fw-bold text-dark mb-2">
+            <a href="{% url 'solutions:detail' project.solution.pk %}" class="text-decoration-none text-dark hover-teal">
+              {{ project.solution.title }}
+            </a>
+          </h5>
+          <div class="small text-muted mb-2">
+            Author: <strong>{{ project.solution.creator.display_name }}</strong>
+          </div>
+          <p class="small text-muted mb-3">{{ project.solution.description|truncatewords:20 }}</p>
+          <a href="{% url 'solutions:detail' project.solution.pk %}" class="btn btn-outline-secondary btn-sm w-100">
+            View Technical Solution <i class="bi bi-arrow-right ms-1"></i>
+          </a>
+        </div>
+      {% endif %}
+
+      <!-- Propose Partnership Card -->
+      <div class="card p-4 rounded-4 border-0 shadow-sm" style="background: linear-gradient(135deg, #f0fdf4 0%, #e6fffa 100%); border: 1px solid #bbf7d0;">
+        <h6 class="fw-bold text-success mb-2"><i class="bi bi-handshake-fill me-1"></i> Partner with this Initiative</h6>
+        <p class="small text-secondary mb-3">
+          Universities & industry bodies can sponsor, provide lab testing, or offer expert guidance to this team.
+        </p>
+        {% if user.is_authenticated and user.role in 'university industry' %}
+          <a href="{% url 'partnerships:request_create' %}?project={{ project.pk }}" class="btn btn-success btn-sm w-100 fw-semibold">
+            Propose Partnership / Mentorship
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

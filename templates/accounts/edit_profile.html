@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Profile – CivicConnect{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="card card-civic-flat p-4 p-md-5 border-0 shadow-sm">
+        <div class="d-flex align-items-center justify-content-between mb-4 pb-2 border-bottom">
+          <div>
+            <h3 class="fw-bold text-dark mb-1">Edit Profile</h3>
+            <p class="text-muted small mb-0">Update your account credentials, institutional affiliation, and biography.</p>
+          </div>
+          <a href="{% url 'accounts:profile' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i> Back to Profile
+          </a>
+        </div>
+
+        <form method="post" enctype="multipart/form-data" novalidate>
+          {% csrf_token %}
+
+          {% if form.non_field_errors %}
+            <div class="alert alert-danger py-2 small mb-3">
+              {% for error in form.non_field_errors %}
+                <div>{{ error }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label for="{{ form.first_name.id_for_label }}" class="form-label small fw-semibold">First Name</label>
+              {{ form.first_name }}
+              {% if form.first_name.errors %}
+                <div class="text-danger small mt-1">{{ form.first_name.errors.0 }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-6">
+              <label for="{{ form.last_name.id_for_label }}" class="form-label small fw-semibold">Last Name</label>
+              {{ form.last_name }}
+              {% if form.last_name.errors %}
+                <div class="text-danger small mt-1">{{ form.last_name.errors.0 }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label for="{{ form.email.id_for_label }}" class="form-label small fw-semibold">Email Address</label>
+              {{ form.email }}
+              {% if form.email.errors %}
+                <div class="text-danger small mt-1">{{ form.email.errors.0 }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-6">
+              <label for="{{ form.phone.id_for_label }}" class="form-label small fw-semibold">Phone Number</label>
+              {{ form.phone }}
+              {% if form.phone.errors %}
+                <div class="text-danger small mt-1">{{ form.phone.errors.0 }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label for="{{ form.institution_name.id_for_label }}" class="form-label small fw-semibold">Institution / Organization Name</label>
+              {{ form.institution_name }}
+              {% if form.institution_name.errors %}
+                <div class="text-danger small mt-1">{{ form.institution_name.errors.0 }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-6">
+              <label for="{{ form.location.id_for_label }}" class="form-label small fw-semibold">Location (City, Country)</label>
+              {{ form.location }}
+              {% if form.location.errors %}
+                <div class="text-danger small mt-1">{{ form.location.errors.0 }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="{{ form.website.id_for_label }}" class="form-label small fw-semibold">Website or Portfolio URL</label>
+            {{ form.website }}
+            {% if form.website.errors %}
+              <div class="text-danger small mt-1">{{ form.website.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="mb-3">
+            <label for="{{ form.bio.id_for_label }}" class="form-label small fw-semibold">Biography / Background Summary</label>
+            {{ form.bio }}
+            {% if form.bio.errors %}
+              <div class="text-danger small mt-1">{{ form.bio.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="mb-4">
+            <label for="{{ form.avatar.id_for_label }}" class="form-label small fw-semibold">Profile Photo / Logo</label>
+            {{ form.avatar }}
+            {% if form.avatar.errors %}
+              <div class="text-danger small mt-1">{{ form.avatar.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="d-flex justify-content-end gap-2">
+            <a href="{% url 'accounts:profile' %}" class="btn btn-light border">Cancel</a>
+            <button type="submit" class="btn btn-civic-teal px-4 fw-semibold">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,242 @@
+{% extends 'base.html' %}
+
+{% block title %}Student / Citizen Dashboard – CivicConnect{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <!-- Dashboard Top Header -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+    <div>
+      <span class="badge badge-student mb-1">Citizen & Student Innovator Dashboard</span>
+      <h2 class="fw-bold text-dark mb-0">Welcome, {{ user.display_name }}!</h2>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{% url 'challenges:create' %}" class="btn btn-civic-teal btn-sm">
+        <i class="bi bi-plus-circle me-1"></i> Submit Challenge
+      </a>
+      <a href="{% url 'challenges:list' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-compass me-1"></i> Browse Challenges
+      </a>
+    </div>
+  </div>
+
+  <!-- Dynamic Metric Cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-lg-2">
+      <div class="stat-card p-3">
+        <div>
+          <h4 class="fw-bold mb-0 text-dark">{{ stats.total_challenges }}</h4>
+          <span class="text-muted small">My Challenges</span>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-2">
+      <div class="stat-card p-3">
+        <div>
+          <h4 class="fw-bold mb-0 text-success">{{ stats.approved_challenges }}</h4>
+          <span class="text-muted small">Approved</span>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-2">
+      <div class="stat-card p-3">
+        <div>
+          <h4 class="fw-bold mb-0 text-dark">{{ stats.total_solutions }}</h4>
+          <span class="text-muted small">Solutions</span>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-2">
+      <div class="stat-card p-3">
+        <div>
+          <h4 class="fw-bold mb-0 text-teal">{{ stats.accepted_solutions }}</h4>
+          <span class="text-muted small">Accepted</span>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-2">
+      <div class="stat-card p-3">
+        <div>
+          <h4 class="fw-bold mb-0 text-primary">{{ stats.total_projects }}</h4>
+          <span class="text-muted small">Team Projects</span>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-2">
+      <div class="stat-card p-3">
+        <div>
+          <h4 class="fw-bold mb-0 text-warning">{{ stats.total_votes }}</h4>
+          <span class="text-muted small">Upvotes Given</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Left Column: Challenges & Solutions -->
+    <div class="col-lg-8">
+      <!-- My Challenges Section -->
+      <div class="card card-civic-flat p-4 border-0 shadow-sm mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+          <h5 class="fw-bold text-dark mb-0"><i class="bi bi-flag text-teal me-2"></i> My Submitted Challenges</h5>
+          <a href="{% url 'challenges:create' %}" class="small text-teal text-decoration-none fw-semibold">+ New</a>
+        </div>
+
+        {% if my_challenges %}
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light small">
+                <tr>
+                  <th>Title</th>
+                  <th>Category</th>
+                  <th>Status</th>
+                  <th>Votes</th>
+                  <th class="text-end">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for ch in my_challenges %}
+                  <tr>
+                    <td>
+                      <a href="{% url 'challenges:detail' ch.pk %}" class="text-decoration-none text-dark fw-semibold small hover-teal">
+                        {{ ch.title|truncatechars:35 }}
+                      </a>
+                    </td>
+                    <td><span class="badge bg-light text-dark border small">{{ ch.category.name }}</span></td>
+                    <td><span class="badge {{ ch.get_status_badge_class }}" style="font-size: 0.7rem;">{{ ch.get_status_display }}</span></td>
+                    <td class="small fw-bold text-teal">{{ ch.votes_count }}</td>
+                    <td class="text-end">
+                      <a href="{% url 'challenges:edit' ch.pk %}" class="btn btn-link text-primary p-0 me-2" title="Edit"><i class="bi bi-pencil"></i></a>
+                      <a href="{% url 'challenges:delete' ch.pk %}" class="btn btn-link text-danger p-0" title="Delete"><i class="bi bi-trash"></i></a>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="text-center py-4 text-muted small">
+            You haven't submitted any challenges yet.
+            <div class="mt-2"><a href="{% url 'challenges:create' %}" class="btn btn-civic-teal btn-sm">Submit Your First Challenge</a></div>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- My Solutions Section -->
+      <div class="card card-civic-flat p-4 border-0 shadow-sm mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+          <h5 class="fw-bold text-dark mb-0"><i class="bi bi-lightbulb text-warning me-2"></i> My Submitted Solutions</h5>
+          <a href="{% url 'challenges:list' %}" class="small text-teal text-decoration-none fw-semibold">Browse Challenges</a>
+        </div>
+
+        {% if my_solutions %}
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light small">
+                <tr>
+                  <th>Solution Title</th>
+                  <th>Target Challenge</th>
+                  <th>Duration</th>
+                  <th>Status</th>
+                  <th class="text-end">View</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for sol in my_solutions %}
+                  <tr>
+                    <td>
+                      <a href="{% url 'solutions:detail' sol.pk %}" class="text-decoration-none text-dark fw-semibold small hover-teal">
+                        {{ sol.title|truncatechars:30 }}
+                      </a>
+                    </td>
+                    <td class="small text-muted">{{ sol.challenge.title|truncatechars:25 }}</td>
+                    <td class="small text-muted">{{ sol.estimated_duration }}</td>
+                    <td>
+                      {% if sol.is_accepted %}
+                        <span class="badge bg-success" style="font-size: 0.7rem;"><i class="bi bi-check2"></i> Accepted</span>
+                      {% else %}
+                        <span class="badge bg-secondary" style="font-size: 0.7rem;">Review</span>
+                      {% endif %}
+                    </td>
+                    <td class="text-end">
+                      <a href="{% url 'solutions:detail' sol.pk %}" class="btn btn-outline-secondary btn-sm py-0 px-2 small">Open</a>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="text-center py-4 text-muted small">
+            You haven't proposed any solutions yet.
+            <div class="mt-2"><a href="{% url 'challenges:list' %}" class="btn btn-outline-secondary btn-sm">Find Challenges to Solve</a></div>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- My Collaborative Projects Section -->
+      <div class="card card-civic-flat p-4 border-0 shadow-sm">
+        <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+          <h5 class="fw-bold text-dark mb-0"><i class="bi bi-kanban text-success me-2"></i> My Collaborative Projects</h5>
+          <a href="{% url 'collaborations:list' %}" class="small text-teal text-decoration-none fw-semibold">View All</a>
+        </div>
+
+        {% if my_collaborations %}
+          <div class="d-flex flex-column gap-3">
+            {% for mem in my_collaborations %}
+              <div class="p-3 rounded-3 bg-light border">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <h6 class="fw-bold mb-0">
+                    <a href="{% url 'collaborations:detail' mem.project.pk %}" class="text-decoration-none text-dark hover-teal">
+                      {{ mem.project.title }}
+                    </a>
+                  </h6>
+                  <span class="badge {{ mem.project.get_status_badge_class }}">{{ mem.project.get_status_display }}</span>
+                </div>
+                <div class="small text-muted mb-2">My Role: <strong>{{ mem.role }}</strong> &bull; Challenge: {{ mem.project.challenge.title|truncatechars:35 }}</div>
+                <div class="progress progress-civic" style="height: 6px;">
+                  <div class="progress-bar" style="width: {{ mem.project.progress_percentage }}%;"></div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-center py-3 text-muted small">
+            Not currently enrolled in any project teams.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Right Column: Recent Activity Feed & Quick Links -->
+    <div class="col-lg-4">
+      <div class="card card-civic-flat p-4 border-0 shadow-sm mb-4">
+        <h5 class="fw-bold text-dark mb-3"><i class="bi bi-activity text-teal me-2"></i> My Recent Activity</h5>
+        {% if recent_activities %}
+          <div class="d-flex flex-column gap-3">
+            {% for act in recent_activities %}
+              <div class="small pb-2 border-bottom">
+                <div class="fw-semibold text-dark">{{ act.title }}</div>
+                <span class="text-muted" style="font-size: 0.75rem;">{{ act.created_at|timesince }} ago</span>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="small text-muted mb-0">No recent activity recorded.</p>
+        {% endif %}
+      </div>
+
+      <!-- Quick Platform Actions -->
+      <div class="card card-civic-flat p-4 border-0 shadow-sm">
+        <h6 class="fw-bold text-dark mb-3">Quick Navigation</h6>
+        <div class="d-grid gap-2 small">
+          <a href="{% url 'accounts:profile' %}" class="btn btn-outline-secondary btn-sm text-start"><i class="bi bi-person me-2"></i> View Profile</a>
+          <a href="{% url 'partnerships:directory' %}" class="btn btn-outline-secondary btn-sm text-start"><i class="bi bi-building me-2"></i> University & Industry Directory</a>
+          <a href="{% url 'partnerships:list' %}" class="btn btn-outline-secondary btn-sm text-start"><i class="bi bi-envelope-paper me-2"></i> Partnership Inquiries</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

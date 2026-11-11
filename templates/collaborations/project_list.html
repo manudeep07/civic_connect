@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+
+{% block title %}Collaborative Projects – CivicConnect{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <!-- Page Header -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+    <div>
+      <h2 class="fw-bold text-dark mb-1">Collaborative Initiatives</h2>
+      <p class="text-muted small mb-0">Multi-disciplinary project workspaces turning validated solutions into community reality.</p>
+    </div>
+    {% if user.is_authenticated %}
+      <a href="{% url 'challenges:list' %}" class="btn btn-civic-teal">
+        <i class="bi bi-compass me-1"></i> Browse Challenges to Collaborate
+      </a>
+    {% endif %}
+  </div>
+
+  <!-- Metric Overview Cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-4">
+      <div class="stat-card">
+        <div class="stat-icon stat-icon-teal"><i class="bi bi-kanban"></i></div>
+        <div>
+          <h3 class="fw-bold mb-0 text-dark">{{ total_projects }}</h3>
+          <span class="text-muted small">Total Initiatives</span>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="stat-card">
+        <div class="stat-icon stat-icon-emerald"><i class="bi bi-play-circle"></i></div>
+        <div>
+          <h3 class="fw-bold mb-0 text-dark">{{ active_projects }}</h3>
+          <span class="text-muted small">Actively In Progress</span>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="stat-card">
+        <div class="stat-icon stat-icon-navy"><i class="bi bi-check-all"></i></div>
+        <div>
+          <h3 class="fw-bold mb-0 text-dark">{{ completed_projects }}</h3>
+          <span class="text-muted small">Completed & Delivered</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search & Filter Bar -->
+  <div class="card card-civic-flat p-3 mb-4 border-0 shadow-sm">
+    <form method="get" class="row g-2 align-items-center">
+      <div class="col-lg-6 col-md-6">
+        <div class="input-group">
+          <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+          <input type="text" name="q" class="form-control border-start-0" placeholder="Search by project title, description, or lead..." value="{{ search_query }}">
+        </div>
+      </div>
+      <div class="col-lg-4 col-md-4">
+        <select name="status" class="form-select">
+          <option value="">All Project Statuses</option>
+          <option value="planning" {% if selected_status == 'planning' %}selected{% endif %}>Planning & Scoping</option>
+          <option value="active" {% if selected_status == 'active' %}selected{% endif %}>Active & In Progress</option>
+          <option value="on_hold" {% if selected_status == 'on_hold' %}selected{% endif %}>On Hold</option>
+          <option value="completed" {% if selected_status == 'completed' %}selected{% endif %}>Completed</option>
+        </select>
+      </div>
+      <div class="col-lg-2 col-md-2 d-grid">
+        <button type="submit" class="btn btn-civic-primary">Filter</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Projects Grid -->
+  <div class="row g-4">
+    {% for project in projects %}
+      <div class="col-lg-4 col-md-6">
+        <div class="card card-civic h-100 p-4 border-0 shadow-sm d-flex flex-column">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <span class="badge {{ project.get_status_badge_class }}">{{ project.get_status_display }}</span>
+            <span class="small fw-bold text-teal">{{ project.progress_percentage }}% Progress</span>
+          </div>
+
+          <h5 class="fw-bold mb-2">
+            <a href="{% url 'collaborations:detail' project.pk %}" class="text-decoration-none text-dark hover-teal">
+              {{ project.title|truncatechars:50 }}
+            </a>
+          </h5>
+
+          <!-- Progress Bar -->
+          <div class="progress progress-civic my-2">
+            <div class="progress-bar" role="progressbar" style="width: {{ project.progress_percentage }}%;" aria-valuenow="{{ project.progress_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+          </div>
+
+          <div class="small text-muted mb-2">
+            <i class="bi bi-flag text-info me-1"></i> Challenge: <strong>{{ project.challenge.title|truncatechars:35 }}</strong>
+          </div>
+
+          <p class="small text-secondary flex-grow-1 mb-3">
+            {{ project.description|truncatewords:20 }}
+          </p>
+
+          <div class="pt-3 border-top d-flex align-items-center justify-content-between small text-muted">
+            <div class="d-flex align-items-center gap-1">
+              <i class="bi bi-person-fill text-primary"></i>
+              <span>Lead: {{ project.lead.display_name|truncatechars:18 }}</span>
+            </div>
+            <a href="{% url 'collaborations:detail' project.pk %}" class="btn btn-sm btn-outline-secondary py-1 px-3">
+              Workspace &rarr;
+            </a>
+          </div>
+        </div>
+      </div>
+    {% empty %}
+      <div class="col-12 text-center py-5">
+        <div class="p-5 rounded-4 bg-white border">
+          <i class="bi bi-kanban fs-1 text-muted d-block mb-3"></i>
+          <h4 class="fw-bold text-dark">No Collaborative Projects Found</h4>
+          <p class="text-muted">Start collaborating by exploring challenges and submitting or accepting proposed solutions.</p>
+          <a href="{% url 'challenges:list' %}" class="btn btn-civic-teal btn-sm">Explore Challenges</a>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <!-- Pagination -->
+  {% if projects.has_other_pages %}
+    <nav aria-label="Projects pagination" class="mt-5">
+      <ul class="pagination justify-content-center">
+        {% if projects.has_previous %}
+          <li class="page-item"><a class="page-link" href="?page={{ projects.previous_page_number }}&q={{ search_query }}&status={{ selected_status }}">&laquo; Previous</a></li>
+        {% endif %}
+        {% for p in projects.paginator.page_range %}
+          <li class="page-item {% if projects.number == p %}active{% endif %}">
+            <a class="page-link {% if projects.number == p %}bg-teal border-teal{% endif %}" href="?page={{ p }}&q={{ search_query }}&status={{ selected_status }}">{{ p }}</a>
+          </li>
+        {% endfor %}
+        {% if projects.has_next %}
+          <li class="page-item"><a class="page-link" href="?page={{ projects.next_page_number }}&q={{ search_query }}&status={{ selected_status }}">Next &raquo;</a></li>
+        {% endif %}
+      </ul>
+    </nav>
+  {% endif %}
+</div>
+{% endblock %}
+

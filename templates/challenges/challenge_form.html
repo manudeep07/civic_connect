@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ action_title }} – CivicConnect{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="card card-civic-flat p-4 p-md-5 border-0 shadow-sm">
+        <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+          <div>
+            <h3 class="fw-bold text-dark mb-1">{{ action_title }}</h3>
+            <p class="text-muted small mb-0">Provide precise details so researchers and student innovators can conceptualize effective solutions.</p>
+          </div>
+          <a href="{% url 'challenges:list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-x-lg"></i>
+          </a>
+        </div>
+
+        <form method="post" enctype="multipart/form-data" novalidate>
+          {% csrf_token %}
+
+          {% if form.non_field_errors %}
+            <div class="alert alert-danger py-2 small mb-3">
+              {% for error in form.non_field_errors %}
+                <div>{{ error }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
+
+          <div class="mb-3">
+            <label for="{{ form.title.id_for_label }}" class="form-label small fw-semibold">Challenge Title <span class="text-danger">*</span></label>
+            {{ form.title }}
+            <div class="form-text small text-muted">A concise, descriptive summary of the societal challenge.</div>
+            {% if form.title.errors %}
+              <div class="text-danger small mt-1">{{ form.title.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label for="{{ form.category.id_for_label }}" class="form-label small fw-semibold">Category <span class="text-danger">*</span></label>
+              {{ form.category }}
+              {% if form.category.errors %}
+                <div class="text-danger small mt-1">{{ form.category.errors.0 }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-6">
+              <label for="{{ form.problem_severity.id_for_label }}" class="form-label small fw-semibold">Problem Severity <span class="text-danger">*</span></label>
+              {{ form.problem_severity }}
+              {% if form.problem_severity.errors %}
+                <div class="text-danger small mt-1">{{ form.problem_severity.errors.0 }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label for="{{ form.location.id_for_label }}" class="form-label small fw-semibold">Target Location / Community <span class="text-danger">*</span></label>
+              {{ form.location }}
+              {% if form.location.errors %}
+                <div class="text-danger small mt-1">{{ form.location.errors.0 }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-6">
+              <label for="{{ form.organization_name.id_for_label }}" class="form-label small fw-semibold">Organization / University (Optional)</label>
+              {{ form.organization_name }}
+              {% if form.organization_name.errors %}
+                <div class="text-danger small mt-1">{{ form.organization_name.errors.0 }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="{{ form.description.id_for_label }}" class="form-label small fw-semibold">Problem Description <span class="text-danger">*</span></label>
+            {{ form.description }}
+            <div class="form-text small text-muted">Explain the underlying causes, who is affected, and existing barriers.</div>
+            {% if form.description.errors %}
+              <div class="text-danger small mt-1">{{ form.description.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="mb-3">
+            <label for="{{ form.expected_impact.id_for_label }}" class="form-label small fw-semibold">Expected Impact & Success Criteria <span class="text-danger">*</span></label>
+            {{ form.expected_impact }}
+            <div class="form-text small text-muted">What measurable change or social benefit should a successful solution achieve?</div>
+            {% if form.expected_impact.errors %}
+              <div class="text-danger small mt-1">{{ form.expected_impact.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="mb-4">
+            <label for="{{ form.image.id_for_label }}" class="form-label small fw-semibold">Upload Photo / Field Evidence (Optional)</label>
+            {{ form.image }}
+            {% if form.image.errors %}
+              <div class="text-danger small mt-1">{{ form.image.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+            <a href="{% url 'challenges:list' %}" class="btn btn-light border">Cancel</a>
+            <button type="submit" class="btn btn-civic-teal px-4 fw-semibold">
+              <i class="bi bi-cloud-arrow-up me-1"></i> Submit Challenge
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

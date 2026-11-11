@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ action_title }} – CivicConnect{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="card card-civic-flat p-4 p-md-5 border-0 shadow-sm">
+        <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+          <div>
+            <span class="badge bg-light text-dark border mb-1">
+              <i class="bi bi-flag text-teal me-1"></i> For: {{ challenge.title|truncatechars:45 }}
+            </span>
+            <h3 class="fw-bold text-dark mb-0">{{ action_title }}</h3>
+          </div>
+          <a href="{% url 'challenges:detail' challenge.pk %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-x-lg"></i>
+          </a>
+        </div>
+
+        <form method="post" novalidate>
+          {% csrf_token %}
+
+          {% if form.non_field_errors %}
+            <div class="alert alert-danger py-2 small mb-3">
+              {% for error in form.non_field_errors %}
+                <div>{{ error }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
+
+          <div class="mb-3">
+            <label for="{{ form.title.id_for_label }}" class="form-label small fw-semibold">Solution Title <span class="text-danger">*</span></label>
+            {{ form.title }}
+            <div class="form-text small text-muted">A clear, descriptive name for your proposed innovative concept.</div>
+            {% if form.title.errors %}
+              <div class="text-danger small mt-1">{{ form.title.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="mb-3">
+            <label for="{{ form.estimated_duration.id_for_label }}" class="form-label small fw-semibold">Estimated Implementation Duration <span class="text-danger">*</span></label>
+            {{ form.estimated_duration }}
+            <div class="form-text small text-muted">e.g. 6 Weeks, 3 Months, 1 Academic Semester</div>
+            {% if form.estimated_duration.errors %}
+              <div class="text-danger small mt-1">{{ form.estimated_duration.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="mb-3">
+            <label for="{{ form.description.id_for_label }}" class="form-label small fw-semibold">Solution Overview & Concept <span class="text-danger">*</span></label>
+            {{ form.description }}
+            <div class="form-text small text-muted">Provide a comprehensive breakdown of your proposed intervention and why it will succeed.</div>
+            {% if form.description.errors %}
+              <div class="text-danger small mt-1">{{ form.description.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="mb-3">
+            <label for="{{ form.proposed_implementation.id_for_label }}" class="form-label small fw-semibold">Proposed Implementation Plan <span class="text-danger">*</span></label>
+            {{ form.proposed_implementation }}
+            <div class="form-text small text-muted">Step-by-step roadmap: architecture, prototyping, pilot testing, and deployment.</div>
+            {% if form.proposed_implementation.errors %}
+              <div class="text-danger small mt-1">{{ form.proposed_implementation.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="mb-3">
+            <label for="{{ form.expected_outcome.id_for_label }}" class="form-label small fw-semibold">Expected Outcome & Key Metrics <span class="text-danger">*</span></label>
+            {{ form.expected_outcome }}
+            <div class="form-text small text-muted">Measurable milestones and key performance indicators.</div>
+            {% if form.expected_outcome.errors %}
+              <div class="text-danger small mt-1">{{ form.expected_outcome.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="mb-4">
+            <label for="{{ form.required_resources.id_for_label }}" class="form-label small fw-semibold">Required Resources & Budget <span class="text-danger">*</span></label>
+            {{ form.required_resources }}
+            <div class="form-text small text-muted">Software frameworks, hardware components, laboratory equipment, or mentor expertise needed.</div>
+            {% if form.required_resources.errors %}
+              <div class="text-danger small mt-1">{{ form.required_resources.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+            <a href="{% url 'challenges:detail' challenge.pk %}" class="btn btn-light border">Cancel</a>
+            <button type="submit" class="btn btn-civic-teal px-4 fw-semibold">
+              <i class="bi bi-send me-1"></i> Submit Proposed Solution
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

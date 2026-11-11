@@ -1,0 +1,196 @@
+{% extends 'base.html' %}
+
+{% block title %}Browse Societal Challenges – CivicConnect{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <!-- Page Header -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+    <div>
+      <h2 class="fw-bold text-dark mb-1">Societal Challenges</h2>
+      <p class="text-muted small mb-0">Browse real-world problems submitted by citizens, universities, and community partners.</p>
+    </div>
+    {% if user.is_authenticated %}
+      <a href="{% url 'challenges:create' %}" class="btn btn-civic-teal">
+        <i class="bi bi-plus-circle me-1"></i> Submit a Challenge
+      </a>
+    {% else %}
+      <a href="{% url 'accounts:register' %}" class="btn btn-civic-teal">
+        <i class="bi bi-person-plus me-1"></i> Register to Submit
+      </a>
+    {% endif %}
+  </div>
+
+  <!-- Search & Filter Controls Card -->
+  <div class="card card-civic-flat p-3 mb-4 border-0 shadow-sm">
+    <form method="get" class="row g-2 align-items-center">
+      <!-- Search Input -->
+      <div class="col-lg-4 col-md-6">
+        <div class="input-group">
+          <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+          <input type="text" name="q" class="form-control border-start-0" placeholder="Search by title, location, issue..." value="{{ search_query }}">
+        </div>
+      </div>
+
+      <!-- Category Filter -->
+      <div class="col-lg-3 col-md-6">
+        <select name="category" class="form-select">
+          <option value="">All Categories</option>
+          {% for cat in categories %}
+            <option value="{{ cat.slug }}" {% if selected_category.slug == cat.slug %}selected{% endif %}>
+              {{ cat.name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Severity Filter -->
+      <div class="col-lg-2 col-md-4">
+        <select name="severity" class="form-select">
+          <option value="">All Severities</option>
+          <option value="low" {% if selected_severity == 'low' %}selected{% endif %}>Low</option>
+          <option value="medium" {% if selected_severity == 'medium' %}selected{% endif %}>Medium</option>
+          <option value="high" {% if selected_severity == 'high' %}selected{% endif %}>High</option>
+          <option value="critical" {% if selected_severity == 'critical' %}selected{% endif %}>Critical</option>
+        </select>
+      </div>
+
+      <!-- Status Filter -->
+      <div class="col-lg-2 col-md-4">
+        <select name="status" class="form-select">
+          <option value="">All Statuses</option>
+          <option value="approved" {% if selected_status == 'approved' %}selected{% endif %}>Approved</option>
+          <option value="in_progress" {% if selected_status == 'in_progress' %}selected{% endif %}>In Progress</option>
+          <option value="solved" {% if selected_status == 'solved' %}selected{% endif %}>Solved</option>
+        </select>
+      </div>
+
+      <!-- Sort Options & Submit -->
+      <div class="col-lg-1 col-md-4 d-grid">
+        <button type="submit" class="btn btn-civic-primary">Filter</button>
+      </div>
+    </form>
+
+    <!-- Sorting pills row -->
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 pt-3 mt-3 border-top small">
+      <div class="text-muted">
+        Showing <strong>{{ total_results }}</strong> challenge{{ total_results|pluralize }}
+        {% if search_query %} for "<em>{{ search_query }}</em>"{% endif %}
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <span class="text-muted">Sort by:</span>
+        <a href="?q={{ search_query }}&category={{ selected_category.slug }}&severity={{ selected_severity }}&status={{ selected_status }}&sort=latest" class="badge text-decoration-none {% if selected_sort == 'latest' %}bg-primary{% else %}bg-light text-dark border{% endif %}">Latest</a>
+        <a href="?q={{ search_query }}&category={{ selected_category.slug }}&severity={{ selected_severity }}&status={{ selected_status }}&sort=popular" class="badge text-decoration-none {% if selected_sort == 'popular' %}bg-primary{% else %}bg-light text-dark border{% endif %}">Most Upvoted</a>
+        <a href="?q={{ search_query }}&category={{ selected_category.slug }}&severity={{ selected_severity }}&status={{ selected_status }}&sort=solutions" class="badge text-decoration-none {% if selected_sort == 'solutions' %}bg-primary{% else %}bg-light text-dark border{% endif %}">Most Solutions</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Challenge Grid -->
+  <div class="row g-4">
+    {% for challenge in challenges %}
+      <div class="col-lg-4 col-md-6">
+        <div class="card card-civic h-100 d-flex flex-column border-0 shadow-sm">
+          {% if challenge.image %}
+            <img src="{{ challenge.image.url }}" alt="{{ challenge.title }}" class="challenge-card-img">
+          {% else %}
+            <div class="challenge-placeholder-img">
+              <i class="bi {{ challenge.category.icon }}"></i>
+            </div>
+          {% endif %}
+
+          <div class="card-body p-4 d-flex flex-column flex-grow-1">
+            <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+              <span class="badge bg-light text-dark border">
+                <i class="bi {{ challenge.category.icon }} text-teal me-1"></i> {{ challenge.category.name }}
+              </span>
+              <span class="badge {{ challenge.get_severity_badge_class }}">
+                {{ challenge.get_problem_severity_display }}
+              </span>
+            </div>
+
+            <h5 class="card-title fw-bold text-dark mb-2">
+              <a href="{% url 'challenges:detail' challenge.pk %}" class="text-decoration-none text-dark hover-teal">
+                {{ challenge.title|truncatechars:65 }}
+              </a>
+            </h5>
+
+            <p class="text-muted small mb-3 flex-grow-1">
+              {{ challenge.description|truncatewords:22 }}
+            </p>
+
+            <div class="d-flex align-items-center gap-2 small text-muted mb-3">
+              <i class="bi bi-geo-alt text-danger"></i> {{ challenge.location|truncatechars:32 }}
+            </div>
+
+            <div class="d-flex align-items-center justify-content-between mb-3 small">
+              <span class="badge {{ challenge.get_status_badge_class }}">{{ challenge.get_status_display }}</span>
+              <span class="text-muted"><i class="bi bi-calendar3 me-1"></i> {{ challenge.created_at|date:"M d, Y" }}</span>
+            </div>
+
+            <div class="pt-3 border-top d-flex align-items-center justify-content-between">
+              <div class="d-flex align-items-center gap-3 small text-muted">
+                <span title="Community Upvotes"><i class="bi bi-hand-thumbs-up-fill text-teal"></i> {{ challenge.votes_count }}</span>
+                <span title="Proposed Solutions"><i class="bi bi-lightbulb-fill text-warning"></i> {{ challenge.solutions_count }}</span>
+              </div>
+              <a href="{% url 'challenges:detail' challenge.pk %}" class="btn btn-sm btn-outline-secondary">
+                View & Propose &rarr;
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    {% empty %}
+      <div class="col-12 text-center py-5">
+        <div class="p-5 rounded-4 bg-white border">
+          <i class="bi bi-search fs-1 text-muted d-block mb-3"></i>
+          <h4 class="fw-bold text-dark">No Challenges Found</h4>
+          <p class="text-muted">We couldn't find any challenges matching your filter criteria.</p>
+          <a href="{% url 'challenges:list' %}" class="btn btn-outline-secondary btn-sm me-2">Reset Filters</a>
+          {% if user.is_authenticated %}
+            <a href="{% url 'challenges:create' %}" class="btn btn-civic-teal btn-sm">Submit New Challenge</a>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <!-- Pagination (Demonstrates INT253 CO2) -->
+  {% if challenges.has_other_pages %}
+    <nav aria-label="Page navigation" class="mt-5">
+      <ul class="pagination justify-content-center">
+        {% if challenges.has_previous %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ challenges.previous_page_number }}&q={{ search_query }}&category={{ selected_category.slug }}&severity={{ selected_severity }}&status={{ selected_status }}&sort={{ selected_sort }}" aria-label="Previous">
+              <span aria-hidden="true">&laquo; Previous</span>
+            </a>
+          </li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">&laquo; Previous</span></li>
+        {% endif %}
+
+        {% for p in challenges.paginator.page_range %}
+          {% if challenges.number == p %}
+            <li class="page-item active"><span class="page-link bg-teal border-teal">{{ p }}</span></li>
+          {% elif p > challenges.number|add:'-3' and p < challenges.number|add:'3' %}
+            <li class="page-item">
+              <a class="page-link" href="?page={{ p }}&q={{ search_query }}&category={{ selected_category.slug }}&severity={{ selected_severity }}&status={{ selected_status }}&sort={{ selected_sort }}">{{ p }}</a>
+            </li>
+          {% endif %}
+        {% endfor %}
+
+        {% if challenges.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ challenges.next_page_number }}&q={{ search_query }}&category={{ selected_category.slug }}&severity={{ selected_severity }}&status={{ selected_status }}&sort={{ selected_sort }}" aria-label="Next">
+              <span aria-hidden="true">Next &raquo;</span>
+            </a>
+          </li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">Next &raquo;</span></li>
+        {% endif %}
+      </ul>
+    </nav>
+  {% endif %}
+</div>
+{% endblock %}
+

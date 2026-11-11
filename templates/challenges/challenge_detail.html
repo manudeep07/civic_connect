@@ -1,0 +1,352 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ challenge.title }} – CivicConnect{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <!-- Breadcrumb -->
+  <nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb small">
+      <li class="breadcrumb-item"><a href="{% url 'home' %}" class="text-decoration-none text-muted">Home</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'challenges:list' %}" class="text-decoration-none text-muted">Challenges</a></li>
+      <li class="breadcrumb-item active text-truncate" style="max-width: 300px;" aria-current="page">{{ challenge.title }}</li>
+    </ol>
+  </nav>
+
+  <div class="row g-4">
+    <!-- Main Left Content -->
+    <div class="col-lg-8">
+      <div class="card card-civic-flat p-4 p-md-5 border-0 shadow-sm mb-4">
+        <!-- Badges & Meta -->
+        <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+          <span class="badge bg-light text-dark border">
+            <i class="bi {{ challenge.category.icon }} text-teal me-1"></i> {{ challenge.category.name }}
+          </span>
+          <span class="badge {{ challenge.get_severity_badge_class }}">
+            <i class="bi bi-exclamation-diamond me-1"></i> {{ challenge.get_problem_severity_display }} Severity
+          </span>
+          <span class="badge {{ challenge.get_status_badge_class }}">
+            {{ challenge.get_status_display }}
+          </span>
+        </div>
+
+        <h1 class="h2 fw-bold text-dark mb-3">{{ challenge.title }}</h1>
+
+        <!-- Creator & Meta Bar -->
+        <div class="d-flex flex-wrap align-items-center justify-content-between p-3 rounded-3 bg-light border mb-4 gap-2">
+          <div class="d-flex align-items-center gap-2">
+            {% if challenge.creator.avatar %}
+              <img src="{{ challenge.creator.avatar.url }}" alt="{{ challenge.creator.username }}" class="rounded-circle" width="38" height="38" style="object-fit: cover;">
+            {% else %}
+              <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+                <i class="bi bi-person"></i>
+              </div>
+            {% endif %}
+            <div>
+              <div class="small fw-semibold">
+                <a href="{% url 'accounts:user_detail' challenge.creator.username %}" class="text-decoration-none text-dark hover-teal">
+                  {{ challenge.creator.display_name }}
+                </a>
+                <span class="badge badge-role {{ challenge.creator.get_role_badge_class }} ms-1">{{ challenge.creator.get_role_display }}</span>
+              </div>
+              <small class="text-muted">
+                {% if challenge.organization_name %}
+                  {{ challenge.organization_name }} &bull;
+                {% elif challenge.creator.institution_name %}
+                  {{ challenge.creator.institution_name }} &bull;
+                {% endif %}
+                Submitted {{ challenge.created_at|date:"F d, Y" }}
+              </small>
+            </div>
+          </div>
+
+          <div class="d-flex align-items-center gap-2">
+            <!-- Upvote Toggle Button -->
+            {% if user.is_authenticated %}
+              <form method="post" action="{% url 'challenges:vote_toggle' challenge.pk %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-upvote {% if user_has_upvoted %}active{% endif %}">
+                  <i class="bi {% if user_has_upvoted %}bi-hand-thumbs-up-fill text-teal{% else %}bi-hand-thumbs-up{% endif %} fs-6"></i>
+                  <span>{{ challenge.votes_count }} Upvote{{ challenge.votes_count|pluralize }}</span>
+                </button>
+              </form>
+            {% else %}
+              <a href="{% url 'accounts:login' %}?next={{ request.path }}" class="btn btn-upvote">
+                <i class="bi bi-hand-thumbs-up fs-6"></i>
+                <span>{{ challenge.votes_count }} Upvotes</span>
+              </a>
+            {% endif %}
+
+            {% if user == challenge.creator or user.is_admin_user %}
+              <div class="dropdown">
+                <button class="btn btn-light border btn-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  <i class="bi bi-three-dots-vertical"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+                  <li><a class="dropdown-item small" href="{% url 'challenges:edit' challenge.pk %}"><i class="bi bi-pencil me-2 text-primary"></i> Edit Challenge</a></li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li><a class="dropdown-item small text-danger" href="{% url 'challenges:delete' challenge.pk %}"><i class="bi bi-trash me-2"></i> Delete Challenge</a></li>
+                </ul>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Optional Image -->
+        {% if challenge.image %}
+          <div class="mb-4 rounded-3 overflow-hidden shadow-xs border">
+            <img src="{{ challenge.image.url }}" alt="{{ challenge.title }}" class="img-fluid w-100" style="max-height: 420px; object-fit: cover;">
+          </div>
+        {% endif %}
+
+        <!-- Problem Description -->
+        <div class="mb-4">
+          <h5 class="fw-bold text-dark border-bottom pb-2 mb-3">
+            <i class="bi bi-file-earmark-text text-teal me-2"></i> Challenge Description
+          </h5>
+          <div class="text-secondary lh-lg" style="white-space: pre-line;">{{ challenge.description }}</div>
+        </div>
+
+        <!-- Expected Impact -->
+        <div class="p-3 rounded-3 mb-4" style="background-color: #f0fdf4; border: 1px solid #bbf7d0;">
+          <h5 class="fw-bold text-success mb-2">
+            <i class="bi bi-bullseye me-2"></i> Anticipated Societal Impact
+          </h5>
+          <div class="text-secondary small lh-lg" style="white-space: pre-line;">{{ challenge.expected_impact }}</div>
+        </div>
+
+        <!-- Meta Details Box -->
+        <div class="row g-3 p-3 rounded-3 bg-light border small text-muted">
+          <div class="col-md-6">
+            <strong>Target Location:</strong> <span class="text-dark">{{ challenge.location }}</span>
+          </div>
+          <div class="col-md-6">
+            <strong>Affiliated Body:</strong> <span class="text-dark">{{ challenge.organization_name|default:"Independent Citizen Report" }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Solutions Section -->
+      <div class="card card-civic-flat p-4 p-md-5 border-0 shadow-sm mb-4" id="solutions">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2 pb-2 border-bottom">
+          <div>
+            <h4 class="fw-bold text-dark mb-0">
+              <i class="bi bi-lightbulb-fill text-warning me-2"></i> Proposed Solutions ({{ solutions.count }})
+            </h4>
+            <small class="text-muted">Innovations submitted by students, researchers, and engineers</small>
+          </div>
+          {% if user.is_authenticated %}
+            <a href="{% url 'solutions:create' challenge.pk %}" class="btn btn-civic-teal btn-sm shadow-sm">
+              <i class="bi bi-plus-lg me-1"></i> Propose Solution
+            </a>
+          {% else %}
+            <a href="{% url 'accounts:login' %}?next={{ request.path }}" class="btn btn-outline-civic-teal btn-sm">
+              Log in to Propose Solution
+            </a>
+          {% endif %}
+        </div>
+
+        {% if solutions %}
+          <div class="d-flex flex-column gap-3">
+            {% for solution in solutions %}
+              <div class="card p-3 rounded-3 border {% if solution.is_accepted %}border-success bg-success-subtle bg-opacity-10{% else %}bg-white{% endif %} shadow-xs">
+                <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                  <div>
+                    <h6 class="fw-bold mb-1">
+                      <a href="{% url 'solutions:detail' solution.pk %}" class="text-decoration-none text-dark hover-teal">
+                        {{ solution.title }}
+                      </a>
+                    </h6>
+                    <small class="text-muted">
+                      By <a href="{% url 'accounts:user_detail' solution.creator.username %}" class="text-decoration-none text-muted">{{ solution.creator.display_name }}</a>
+                      &bull; Est. Duration: <strong>{{ solution.estimated_duration }}</strong>
+                    </small>
+                  </div>
+                  <div>
+                    {% if solution.is_accepted %}
+                      <span class="badge bg-success"><i class="bi bi-check-circle-fill me-1"></i> Accepted Solution</span>
+                    {% else %}
+                      <span class="badge bg-secondary">Under Review</span>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <p class="small text-secondary mb-3">
+                  {{ solution.description|truncatewords:28 }}
+                </p>
+
+                <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                  <div class="small text-muted">
+                    Submitted {{ solution.created_at|date:"M d, Y" }}
+                  </div>
+                  <div class="d-flex gap-2">
+                    <a href="{% url 'solutions:detail' solution.pk %}" class="btn btn-sm btn-outline-secondary py-1 px-3 small">
+                      Review Full Proposal &rarr;
+                    </a>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-center py-4 bg-light rounded-3">
+            <i class="bi bi-lightbulb fs-1 text-muted d-block mb-2"></i>
+            <p class="text-muted small mb-3">No solutions proposed for this challenge yet.</p>
+            {% if user.is_authenticated %}
+              <a href="{% url 'solutions:create' challenge.pk %}" class="btn btn-civic-teal btn-sm">Be the First to Propose a Solution</a>
+            {% endif %}
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Collaborative Projects tackling this challenge -->
+      {% if projects %}
+        <div class="card card-civic-flat p-4 border-0 shadow-sm mb-4">
+          <h5 class="fw-bold text-dark mb-3">
+            <i class="bi bi-kanban text-success me-2"></i> Active Collaborative Initiatives
+          </h5>
+          <div class="row g-3">
+            {% for project in projects %}
+              <div class="col-md-6">
+                <div class="p-3 rounded-3 bg-light border h-100 d-flex flex-column">
+                  <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="badge {{ project.get_status_badge_class }}">{{ project.get_status_display }}</span>
+                    <span class="small fw-bold text-teal">{{ project.progress_percentage }}%</span>
+                  </div>
+                  <h6 class="fw-bold mb-1">
+                    <a href="{% url 'collaborations:detail' project.pk %}" class="text-decoration-none text-dark">{{ project.title }}</a>
+                  </h6>
+                  <p class="small text-muted flex-grow-1">{{ project.description|truncatewords:15 }}</p>
+                  <a href="{% url 'collaborations:detail' project.pk %}" class="btn btn-sm btn-outline-teal w-100 mt-2">View Project Workspace</a>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- Community Comments Section (INT253 CO4 & CO5) -->
+      <div class="card card-civic-flat p-4 p-md-5 border-0 shadow-sm" id="comments">
+        <h4 class="fw-bold text-dark mb-3 pb-2 border-bottom">
+          <i class="bi bi-chat-left-text text-teal me-2"></i> Community Discussion ({{ comments.count }})
+        </h4>
+
+        <!-- Comment Input Form -->
+        {% if user.is_authenticated %}
+          <form method="post" action="{% url 'challenges:comment_add' challenge.pk %}" class="mb-4">
+            {% csrf_token %}
+            <div class="mb-2">
+              {{ comment_form.content }}
+            </div>
+            <div class="d-flex justify-content-end">
+              <button type="submit" class="btn btn-civic-teal btn-sm px-3 fw-semibold">
+                <i class="bi bi-send me-1"></i> Post Comment
+              </button>
+            </div>
+          </form>
+        {% else %}
+          <div class="alert alert-light border small text-center mb-4">
+            <a href="{% url 'accounts:login' %}?next={{ request.path }}#comments" class="text-teal fw-semibold">Log in</a> or <a href="{% url 'accounts:register' %}" class="text-teal fw-semibold">Register</a> to contribute to the discussion.
+          </div>
+        {% endif %}
+
+        <!-- Comments Feed -->
+        <div class="d-flex flex-column gap-3">
+          {% for comment in comments %}
+            <div class="p-3 rounded-3 bg-light border">
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <div class="d-flex align-items-center gap-2">
+                  <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center small" style="width: 28px; height: 28px;">
+                    {{ comment.user.username|first|upper }}
+                  </div>
+                  <div>
+                    <span class="fw-semibold small text-dark">{{ comment.user.display_name }}</span>
+                    <span class="badge badge-role {{ comment.user.get_role_badge_class }} ms-1" style="font-size: 0.65rem;">{{ comment.user.get_role_display }}</span>
+                  </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                  <span class="text-muted small" style="font-size: 0.75rem;">{{ comment.created_at|timesince }} ago</span>
+                  {% if user == comment.user or user.is_admin_user %}
+                    <form method="post" action="{% url 'challenges:comment_delete' comment.pk %}" class="d-inline">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-link text-danger p-0 ms-1" title="Delete comment" onclick="return confirm('Delete this comment?');">
+                        <i class="bi bi-trash" style="font-size: 0.85rem;"></i>
+                      </button>
+                    </form>
+                  {% endif %}
+                </div>
+              </div>
+              <p class="small text-secondary mb-0 ps-4">{{ comment.content }}</p>
+            </div>
+          {% empty %}
+            <div class="text-center py-3 text-muted small">
+              No comments posted yet. Start the conversation!
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Sidebar Action Cards -->
+    <div class="col-lg-4">
+      <!-- Challenge Overview Card -->
+      <div class="card card-civic-flat p-4 border-0 shadow-sm mb-4">
+        <h5 class="fw-bold text-dark mb-3">Initiative Overview</h5>
+        <ul class="list-unstyled small mb-4 d-flex flex-column gap-2">
+          <li class="d-flex justify-content-between">
+            <span class="text-muted">Severity:</span>
+            <span class="fw-semibold text-dark">{{ challenge.get_problem_severity_display }}</span>
+          </li>
+          <li class="d-flex justify-content-between">
+            <span class="text-muted">Status:</span>
+            <span class="badge {{ challenge.get_status_badge_class }}">{{ challenge.get_status_display }}</span>
+          </li>
+          <li class="d-flex justify-content-between">
+            <span class="text-muted">Location:</span>
+            <span class="text-dark">{{ challenge.location }}</span>
+          </li>
+          <li class="d-flex justify-content-between">
+            <span class="text-muted">Total Votes:</span>
+            <span class="fw-bold text-teal">{{ challenge.votes_count }}</span>
+          </li>
+          <li class="d-flex justify-content-between">
+            <span class="text-muted">Submitted Solutions:</span>
+            <span class="fw-bold text-dark">{{ challenge.solutions_count }}</span>
+          </li>
+        </ul>
+
+        <div class="d-grid gap-2">
+          <a href="#solutions" class="btn btn-civic-teal btn-sm fw-semibold">
+            <i class="bi bi-lightbulb me-1"></i> Propose a Solution
+          </a>
+          {% if user.is_authenticated and challenge.solutions.filter(is_accepted=True).exists %}
+            {% with accepted_sol=challenge.solutions.filter(is_accepted=True).first %}
+              <a href="{% url 'collaborations:create_from_solution' accepted_sol.pk %}" class="btn btn-outline-success btn-sm fw-semibold">
+                <i class="bi bi-hammer me-1"></i> Launch Project for Solution
+              </a>
+            {% endwith %}
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- University & Industry Engagement Callout -->
+      <div class="card p-4 rounded-4 border-0 shadow-sm" style="background: linear-gradient(135deg, #f0fdf4 0%, #e6fffa 100%); border: 1px solid #bbf7d0;">
+        <h6 class="fw-bold text-success mb-2"><i class="bi bi-building me-1"></i> Academic & Industry Mentorship</h6>
+        <p class="small text-secondary mb-3">
+          Universities and corporate partners can adopt this challenge for student capstones, R&D grants, or pilot testing.
+        </p>
+        {% if user.is_authenticated and user.role in 'university industry' %}
+          <a href="{% url 'partnerships:request_create' %}?challenge={{ challenge.pk }}" class="btn btn-success btn-sm w-100 fw-semibold">
+            <i class="bi bi-handshake me-1"></i> Express Collaboration Interest
+          </a>
+        {% else %}
+          <a href="{% url 'accounts:register' %}?role=university" class="btn btn-outline-success btn-sm w-100">
+            Partner with CivicConnect
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
