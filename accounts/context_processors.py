@@ -1,7 +1,6 @@
 def user_roles_processor(request):
     """
     Context processor to make user role helpers and platform constants easily accessible in all templates.
-    Demonstrates Django INT253 CO3 (Templates & Context Processors).
     """
     if request.user.is_authenticated:
         return {

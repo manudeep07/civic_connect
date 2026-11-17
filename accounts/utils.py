@@ -21,7 +21,6 @@ def log_activity(user, activity_type, title, description='', link=''):
 def role_required(allowed_roles):
     """
     Decorator for views that checks if the logged-in user possesses one of the allowed roles.
-    Demonstrates INT253 CO6 (Session & Authentication Control).
     """
     def decorator(view_func):
         @wraps(view_func)

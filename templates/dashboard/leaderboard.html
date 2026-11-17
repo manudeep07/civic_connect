@@ -54,7 +54,7 @@
               {% else %}{{ forloop.counter }}{% endif %}
             </td>
             <td>
-              <a href="{% url 'accounts:profile' u.username %}" class="text-decoration-none text-dark">
+              <a href="{% url 'accounts:user_detail' u.username %}" class="text-decoration-none text-dark">
                 <div class="d-flex align-items-center gap-2">
                   {% if u.avatar %}
                   <img src="{{ u.avatar.url }}" alt="Avatar" class="rounded-circle" style="width:38px;height:38px;object-fit:cover;">

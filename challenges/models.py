@@ -99,34 +99,6 @@ class Challenge(models.Model):
         verbose_name_plural = 'Challenges'
         ordering = ['-created_at']
 
-    def save(self, *args, **kwargs):
-        # Geocode location if it changed (or is new) and lat/lng not already set
-        if not self.latitude or not self.longitude:
-            self._geocode_location()
-        super().save(*args, **kwargs)
-
-    def _geocode_location(self):
-        """Geocode self.location via OpenStreetMap Nominatim — best effort, never raises."""
-        import sys
-        if 'test' in sys.argv:
-            return
-        if not self.location:
-            return
-        try:
-            import urllib.request
-            import urllib.parse
-            import json
-            query = urllib.parse.urlencode({'q': self.location, 'format': 'json', 'limit': 1})
-            url = f'https://nominatim.openstreetmap.org/search?{query}'
-            req = urllib.request.Request(url, headers={'User-Agent': 'CivicConnect/1.0'})
-            with urllib.request.urlopen(req, timeout=3) as resp:
-                data = json.loads(resp.read())
-            if data:
-                self.latitude = float(data[0]['lat'])
-                self.longitude = float(data[0]['lon'])
-        except Exception:
-            pass  # Geocoding is best-effort; never block saving
-
     def __str__(self):
         return self.title
 

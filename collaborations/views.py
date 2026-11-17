@@ -16,7 +16,6 @@ from accounts.models import UserScore
 def project_list_view(request):
     """
     Browse collaborative projects with status filters and keyword search.
-    Demonstrates INT253 CO2 and CO5.
     """
     projects = Project.objects.select_related('challenge', 'solution', 'lead').prefetch_related('memberships__user')
 
@@ -62,7 +61,8 @@ def project_detail_view(request, pk):
     is_member = (request.user.is_authenticated and project.is_member(request.user))
 
     member_form = ProjectMembershipAddForm(project=project) if is_lead else None
-    partnership_requests = project.partnership_requests.all() if (is_lead or request.user.is_university or request.user.is_industry) else []
+    has_partner_role = (request.user.is_authenticated and (request.user.is_university or request.user.is_industry))
+    partnership_requests = project.partnership_requests.all() if (is_lead or has_partner_role) else []
 
     context = {
         'project': project,
@@ -79,7 +79,6 @@ def project_detail_view(request, pk):
 def project_create_from_solution_view(request, solution_id):
     """
     Launch a collaborative project from an accepted solution.
-    Demonstrates INT253 CO4 & CO5.
     Requires:
     - Challenge status is approved or in_progress
     - Solution is accepted

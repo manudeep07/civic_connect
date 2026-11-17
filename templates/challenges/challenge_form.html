@@ -2,6 +2,35 @@
 
 {% block title %}{{ action_title }} – CivicConnect{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<style>
+  #location-picker-map { height: 320px; border-radius: 8px; border: 1px solid #dee2e6; z-index: 1; }
+  .search-results-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1050;
+    max-height: 220px;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    display: none;
+  }
+  .search-result-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    border-bottom: 1px solid #f1f3f5;
+  }
+  .search-result-item:last-child { border-bottom: none; }
+  .search-result-item:hover { background-color: #f0fdf4; color: #166534; }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container py-5">
   <div class="row justify-content-center">
@@ -71,6 +100,57 @@
             </div>
           </div>
 
+          <!-- Hidden Latitude and Longitude fields -->
+          {{ form.latitude }}
+          {{ form.longitude }}
+          {% if form.latitude.errors or form.longitude.errors %}
+            <div class="alert alert-danger py-2 small mb-3">
+              {{ form.latitude.errors.0 }} {{ form.longitude.errors.0 }}
+            </div>
+          {% endif %}
+
+          <!-- Leaflet Map Location Picker -->
+          <div class="mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+              <label class="form-label small fw-semibold mb-0">
+                <i class="bi bi-geo-alt-fill text-danger me-1"></i> Geographic Pinpoint (Optional)
+              </label>
+              <div class="d-flex gap-2">
+                <button type="button" id="btn-current-loc" class="btn btn-outline-primary btn-sm py-1 px-2" style="font-size: 0.78rem;">
+                  <i class="bi bi-crosshair me-1"></i> Use my current location
+                </button>
+                <button type="button" id="btn-clear-pin" class="btn btn-outline-secondary btn-sm py-1 px-2" style="font-size: 0.78rem;">
+                  <i class="bi bi-trash me-1"></i> Clear Pin
+                </button>
+              </div>
+            </div>
+
+            <!-- Nominatim Place Search Box -->
+            <div class="position-relative mb-2">
+              <div class="input-group input-group-sm">
+                <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                <input type="text" id="place-search-input" class="form-control" placeholder="Search a city, region, or landmark to place marker..." autocomplete="off">
+                <span class="input-group-text bg-white text-muted" id="search-spinner" style="display:none;">
+                  <span class="spinner-border spinner-border-sm" role="status"></span>
+                </span>
+              </div>
+              <div id="place-search-dropdown" class="search-results-dropdown"></div>
+            </div>
+
+            <div id="location-picker-map"></div>
+
+            <div class="d-flex justify-content-between align-items-center mt-2 small text-muted">
+              <span>Click on the map or drag the pin to set coordinates.</span>
+              <span id="coords-status" class="fw-semibold text-secondary">
+                {% if form.latitude.value and form.longitude.value %}
+                  Lat: {{ form.latitude.value }}, Lng: {{ form.longitude.value }}
+                {% else %}
+                  No coordinates pinned
+                {% endif %}
+              </span>
+            </div>
+          </div>
+
           <div class="mb-3">
             <label for="{{ form.description.id_for_label }}" class="form-label small fw-semibold">Problem Description <span class="text-danger">*</span></label>
             {{ form.description }}
@@ -110,3 +190,172 @@
 </div>
 {% endblock %}
 
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const latField = document.getElementById('id_latitude');
+  const lngField = document.getElementById('id_longitude');
+  const locField = document.getElementById('id_location');
+  const coordsStatus = document.getElementById('coords-status');
+  const searchInput = document.getElementById('place-search-input');
+  const searchDropdown = document.getElementById('place-search-dropdown');
+  const searchSpinner = document.getElementById('search-spinner');
+  const btnCurrentLoc = document.getElementById('btn-current-loc');
+  const btnClearPin = document.getElementById('btn-clear-pin');
+
+  let initLat = parseFloat(latField.value);
+  let initLng = parseFloat(lngField.value);
+  const hasInitialCoords = !isNaN(initLat) && !isNaN(initLng);
+
+  const defaultCenter = hasInitialCoords ? [initLat, initLng] : [20.5937, 78.9629];
+  const defaultZoom = hasInitialCoords ? 12 : 4;
+
+  const map = L.map('location-picker-map').setView(defaultCenter, defaultZoom);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+
+  let marker = null;
+
+  function updateFields(lat, lng, updateLocationName = false, displayName = '') {
+    latField.value = lat.toFixed(6);
+    lngField.value = lng.toFixed(6);
+    coordsStatus.textContent = `Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}`;
+
+    if (updateLocationName && displayName && locField) {
+      locField.value = displayName;
+    }
+  }
+
+  function setMarker(lat, lng, pan = false, updateLocationName = false, displayName = '') {
+    if (marker) {
+      marker.setLatLng([lat, lng]);
+    } else {
+      marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+      marker.on('dragend', function() {
+        const pos = marker.getLatLng();
+        updateFields(pos.lat, pos.lng);
+      });
+    }
+
+    if (pan) {
+      map.setView([lat, lng], 13);
+    }
+    updateFields(lat, lng, updateLocationName, displayName);
+  }
+
+  if (hasInitialCoords) {
+    setMarker(initLat, initLng, false);
+  }
+
+  map.on('click', function(e) {
+    setMarker(e.latlng.lat, e.latlng.lng, false);
+  });
+
+  if (btnClearPin) {
+    btnClearPin.addEventListener('click', function() {
+      if (marker) {
+        map.removeLayer(marker);
+        marker = null;
+      }
+      latField.value = '';
+      lngField.value = '';
+      coordsStatus.textContent = 'No coordinates pinned';
+    });
+  }
+
+  if (btnCurrentLoc && navigator.geolocation) {
+    btnCurrentLoc.addEventListener('click', function() {
+      btnCurrentLoc.disabled = true;
+      btnCurrentLoc.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Locating...';
+
+      navigator.geolocation.getCurrentPosition(
+        function(pos) {
+          btnCurrentLoc.disabled = false;
+          btnCurrentLoc.innerHTML = '<i class="bi bi-crosshair me-1"></i> Use my current location';
+          setMarker(pos.coords.latitude, pos.coords.longitude, true);
+        },
+        function(err) {
+          btnCurrentLoc.disabled = false;
+          btnCurrentLoc.innerHTML = '<i class="bi bi-crosshair me-1"></i> Use my current location';
+          alert('Could not retrieve current location: ' + err.message);
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    });
+  }
+
+  // Debounced Place Search Box (max 1 request per second to Nominatim)
+  let debounceTimer = null;
+  let lastRequestTimestamp = 0;
+
+  function doSearch(query) {
+    const now = Date.now();
+    const elapsed = now - lastRequestTimestamp;
+    const delay = elapsed < 1000 ? (1000 - elapsed) : 0;
+
+    if (searchSpinner) searchSpinner.style.display = 'inline-block';
+
+    setTimeout(function() {
+      lastRequestTimestamp = Date.now();
+      const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=5&q=' + encodeURIComponent(query);
+
+      fetch(url, { headers: { 'Accept': 'application/json' } })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          if (searchSpinner) searchSpinner.style.display = 'none';
+          searchDropdown.innerHTML = '';
+
+          if (!data || data.length === 0) {
+            searchDropdown.innerHTML = '<div class="p-2 text-muted small">No places found.</div>';
+            searchDropdown.style.display = 'block';
+            return;
+          }
+
+          data.forEach(function(item) {
+            const div = document.createElement('div');
+            div.className = 'search-result-item';
+            div.textContent = item.display_name;
+            div.addEventListener('click', function() {
+              const lat = parseFloat(item.lat);
+              const lon = parseFloat(item.lon);
+              setMarker(lat, lon, true, true, item.display_name);
+              searchDropdown.style.display = 'none';
+              searchInput.value = '';
+            });
+            searchDropdown.appendChild(div);
+          });
+          searchDropdown.style.display = 'block';
+        })
+        .catch(function(err) {
+          if (searchSpinner) searchSpinner.style.display = 'none';
+          console.error('Nominatim search error:', err);
+        });
+    }, delay);
+  }
+
+  if (searchInput) {
+    searchInput.addEventListener('input', function() {
+      clearTimeout(debounceTimer);
+      const q = searchInput.value.trim();
+      if (q.length < 3) {
+        searchDropdown.style.display = 'none';
+        return;
+      }
+      debounceTimer = setTimeout(function() {
+        doSearch(q);
+      }, 400);
+    });
+
+    document.addEventListener('click', function(e) {
+      if (!searchInput.contains(e.target) && !searchDropdown.contains(e.target)) {
+        searchDropdown.style.display = 'none';
+      }
+    });
+  }
+});
+</script>
+{% endblock %}

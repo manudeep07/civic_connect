@@ -1,6 +1,7 @@
 import os
 import sys
 from pathlib import Path
+from django.core.exceptions import ImproperlyConfigured
 from django.contrib.messages import constants as messages
 
 try:
@@ -16,14 +17,28 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Security-sensitive settings — read from environment / .env
 # ---------------------------------------------------------------------------
 if _USE_DECOUPLE:
-    SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-me-in-production')
-    DEBUG = config('DEBUG', default=True, cast=bool)
-    ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='127.0.0.1,localhost', cast=Csv())
+    DEBUG = config('DEBUG', default=False, cast=bool)
+    if DEBUG or 'test' in sys.argv:
+        SECRET_KEY = config('SECRET_KEY', default='django-insecure-dev-key-change-in-production')
+    else:
+        SECRET_KEY = config('SECRET_KEY', default='')
+    ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='127.0.0.1,localhost' if DEBUG else '', cast=Csv())
+    _csrf_origins = config('CSRF_TRUSTED_ORIGINS', default='http://127.0.0.1:8000,http://localhost:8000' if DEBUG else '', cast=Csv())
 else:
-    SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-change-me-in-production')
-    DEBUG = os.environ.get('DEBUG', 'True').lower() not in ('false', '0', 'no')
-    _hosts = os.environ.get('ALLOWED_HOSTS', '127.0.0.1,localhost')
+    DEBUG = os.environ.get('DEBUG', 'False').lower() in ('true', '1', 'yes')
+    if DEBUG or 'test' in sys.argv:
+        SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-dev-key-change-in-production')
+    else:
+        SECRET_KEY = os.environ.get('SECRET_KEY', '')
+    _hosts = os.environ.get('ALLOWED_HOSTS', '127.0.0.1,localhost' if DEBUG else '')
     ALLOWED_HOSTS = [h.strip() for h in _hosts.split(',') if h.strip()]
+    _csrf = os.environ.get('CSRF_TRUSTED_ORIGINS', 'http://127.0.0.1:8000,http://localhost:8000' if DEBUG else '')
+    _csrf_origins = [c.strip() for c in _csrf.split(',') if c.strip()]
+
+if not DEBUG and 'test' not in sys.argv and not SECRET_KEY:
+    raise ImproperlyConfigured("SECRET_KEY environment variable must be set in production when DEBUG=False.")
+
+CSRF_TRUSTED_ORIGINS = [orig for orig in _csrf_origins if orig]
 
 # Application definition
 INSTALLED_APPS = [
@@ -134,8 +149,21 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# WhiteNoise static file compression
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+# Storages configuration (Django 4.2+ / 5.x / 6.x)
+# In production, WhiteNoise compresses and creates hashed manifests for caching.
+# In test environments, use standard StaticFilesStorage since collectstatic is not executed.
+STORAGES = {
+    'default': {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    },
+    'staticfiles': {
+        'BACKEND': (
+            'django.contrib.staticfiles.storage.StaticFilesStorage'
+            if 'test' in sys.argv
+            else 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+        ),
+    },
+}
 
 # Media files (user uploads)
 MEDIA_URL = '/media/'
@@ -171,3 +199,4 @@ if not DEBUG:
     SECURE_SSL_REDIRECT = True
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True

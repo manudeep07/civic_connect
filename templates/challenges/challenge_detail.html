@@ -2,6 +2,15 @@
 
 {% block title %}{{ challenge.title }} – CivicConnect{% endblock %}
 
+{% block extra_css %}
+{% if challenge.latitude and challenge.longitude %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<style>
+  #challenge-detail-map { height: 180px; border-radius: 8px; border: 1px solid #dee2e6; z-index: 1; }
+</style>
+{% endif %}
+{% endblock %}
+
 {% block content %}
 <div class="container py-4">
   <!-- Breadcrumb -->
@@ -225,7 +234,7 @@
         </div>
       {% endif %}
 
-      <!-- Community Comments Section (INT253 CO4 & CO5) -->
+      <!-- Community Comments Section -->
       <div class="card card-civic-flat p-4 p-md-5 border-0 shadow-sm" id="comments">
         <h4 class="fw-bold text-dark mb-3 pb-2 border-bottom">
           <i class="bi bi-chat-left-text text-teal me-2"></i> Community Discussion ({{ comments.count }})
@@ -315,16 +324,24 @@
           </li>
         </ul>
 
+        {% if challenge.latitude and challenge.longitude %}
+          <div class="mb-3">
+            <div id="challenge-detail-map"></div>
+            <div class="text-muted small mt-1 d-flex justify-content-between" style="font-size: 0.72rem;">
+              <span><i class="bi bi-geo-alt-fill text-danger me-1"></i>Pinned Location</span>
+              <span>{{ challenge.latitude|floatformat:4 }}, {{ challenge.longitude|floatformat:4 }}</span>
+            </div>
+          </div>
+        {% endif %}
+
         <div class="d-grid gap-2">
           <a href="#solutions" class="btn btn-civic-teal btn-sm fw-semibold">
             <i class="bi bi-lightbulb me-1"></i> Propose a Solution
           </a>
-          {% if user.is_authenticated and challenge.solutions.filter(is_accepted=True).exists %}
-            {% with accepted_sol=challenge.solutions.filter(is_accepted=True).first %}
-              <a href="{% url 'collaborations:create_from_solution' accepted_sol.pk %}" class="btn btn-outline-success btn-sm fw-semibold">
-                <i class="bi bi-hammer me-1"></i> Launch Project for Solution
-              </a>
-            {% endwith %}
+          {% if user.is_authenticated and accepted_solution %}
+            <a href="{% url 'collaborations:create_from_solution' accepted_solution.pk %}" class="btn btn-outline-success btn-sm fw-semibold">
+              <i class="bi bi-hammer me-1"></i> Launch Project for Solution
+            </a>
           {% endif %}
         </div>
       </div>
@@ -348,5 +365,31 @@
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+{% if challenge.latitude and challenge.longitude %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const mapEl = document.getElementById('challenge-detail-map');
+  if (mapEl) {
+    const lat = {{ challenge.latitude }};
+    const lng = {{ challenge.longitude }};
+    const map = L.map('challenge-detail-map', {
+      center: [lat, lng],
+      zoom: 12,
+      zoomControl: true,
+      scrollWheelZoom: false
+    });
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
+    L.marker([lat, lng]).addTo(map);
+  }
+});
+</script>
+{% endif %}
 {% endblock %}
 

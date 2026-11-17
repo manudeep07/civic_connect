@@ -19,7 +19,6 @@ User = get_user_model()
 def dashboard_index_view(request):
     """
     Role-specific dashboard routing and dynamic data loading.
-    Demonstrates INT253 CO2 (Dynamic Views), CO5 (ORM Queries), and CO6 (Role Based Dashboards).
     """
     user = request.user
     role = user.role

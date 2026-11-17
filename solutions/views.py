@@ -15,7 +15,6 @@ from accounts.models import UserScore
 def solution_create_view(request, challenge_id):
     """
     Submit an innovative proposed solution to an approved challenge.
-    Demonstrates INT253 CO4 & CO5.
     """
     challenge = get_object_or_404(Challenge, pk=challenge_id)
 

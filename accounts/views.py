@@ -15,7 +15,6 @@ User = get_user_model()
 def register_view(request):
     """
     Handle user registration with custom roles, institution, and location.
-    Demonstrates INT253 CO4 (Django Forms) & CO6 (Authentication).
     """
     if request.user.is_authenticated:
         return redirect('dashboard:index')
@@ -45,7 +44,6 @@ def register_view(request):
 def login_view(request):
     """
     Handle authentication via username and password.
-    Demonstrates INT253 CO6 (Cookies, Sessions & Authentication).
     """
     if request.user.is_authenticated:
         return redirect('dashboard:index')
@@ -77,7 +75,6 @@ def login_view(request):
 def logout_view(request):
     """
     Log out the current user and flush session.
-    Demonstrates INT253 CO6.
     """
     user_name = request.user.username
     logout(request)

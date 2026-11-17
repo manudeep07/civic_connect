@@ -690,3 +690,279 @@ class MapViewTests(BaseTestCase):
         response = self.client.get(reverse('challenges:map'))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Challenge Map")
+
+    def test_map_view_output_with_and_without_coordinates(self):
+        ch_with_coords = Challenge.objects.create(
+            title="Mapped Challenge",
+            category=self.category,
+            creator=self.student,
+            location="Miami, FL",
+            latitude=25.7617,
+            longitude=-80.1918,
+            status="approved",
+            problem_severity="medium",
+            description="Challenge with coords.",
+            expected_impact="Impact",
+        )
+        ch_without_coords = Challenge.objects.create(
+            title="Unmapped Challenge",
+            category=self.category,
+            creator=self.student,
+            location="Nowhere",
+            latitude=None,
+            longitude=None,
+            status="approved",
+            problem_severity="low",
+            description="Challenge without coords.",
+            expected_impact="Impact",
+        )
+        response = self.client.get(reverse('challenges:map'))
+        self.assertEqual(response.status_code, 200)
+        markers = response.context['markers']
+        marker_ids = [m['id'] for m in markers]
+        self.assertIn(ch_with_coords.pk, marker_ids)
+        self.assertNotIn(ch_without_coords.pk, marker_ids)
+        self.assertContains(response, 'id="markers-data"')
+
+    def test_map_xss_escaping(self):
+        xss_title = '</script><img src=x onerror=alert(1)>'
+        xss_location = '<script>alert("xss")</script>'
+        ch = Challenge.objects.create(
+            title=xss_title,
+            category=self.category,
+            creator=self.student,
+            location=xss_location,
+            latitude=12.3456,
+            longitude=65.4321,
+            status="approved",
+            problem_severity="high",
+            description="XSS test challenge.",
+            expected_impact="Impact",
+        )
+        response = self.client.get(reverse('challenges:map'))
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode('utf-8')
+        # Django's json_script must escape < to \u003C so malicious tags cannot break out
+        self.assertNotIn('</script><img', content)
+        self.assertIn(r'\u003C/script\u003E\u003Cimg', content)
+
+
+class CoordinateValidationTests(BaseTestCase):
+    def test_valid_coordinates(self):
+        from challenges.forms import ChallengeForm
+        data = {
+            'title': 'Solar panels in rural area',
+            'category': self.category.pk,
+            'location': 'Austin, TX',
+            'latitude': 30.2672,
+            'longitude': -97.7431,
+            'problem_severity': 'high',
+            'description': 'Valid description with enough characters.',
+            'expected_impact': 'Positive impact statement.',
+        }
+        form = ChallengeForm(data=data)
+        self.assertTrue(form.is_valid(), form.errors)
+
+    def test_both_coordinates_empty_is_valid(self):
+        from challenges.forms import ChallengeForm
+        data = {
+            'title': 'Solar panels without coordinates',
+            'category': self.category.pk,
+            'location': 'Austin, TX',
+            'latitude': '',
+            'longitude': '',
+            'problem_severity': 'high',
+            'description': 'Valid description with enough characters.',
+            'expected_impact': 'Positive impact statement.',
+        }
+        form = ChallengeForm(data=data)
+        self.assertTrue(form.is_valid(), form.errors)
+
+    def test_latitude_without_longitude_is_invalid(self):
+        from challenges.forms import ChallengeForm
+        data = {
+            'title': 'Partial coordinates',
+            'category': self.category.pk,
+            'location': 'Austin, TX',
+            'latitude': 30.2672,
+            'longitude': '',
+            'problem_severity': 'high',
+            'description': 'Valid description.',
+            'expected_impact': 'Positive impact.',
+        }
+        form = ChallengeForm(data=data)
+        self.assertFalse(form.is_valid())
+        self.assertIn("Both latitude and longitude must be provided together", str(form.non_field_errors()))
+
+    def test_longitude_without_latitude_is_invalid(self):
+        from challenges.forms import ChallengeForm
+        data = {
+            'title': 'Partial coordinates',
+            'category': self.category.pk,
+            'location': 'Austin, TX',
+            'latitude': '',
+            'longitude': -97.7431,
+            'problem_severity': 'high',
+            'description': 'Valid description.',
+            'expected_impact': 'Positive impact.',
+        }
+        form = ChallengeForm(data=data)
+        self.assertFalse(form.is_valid())
+        self.assertIn("Both latitude and longitude must be provided together", str(form.non_field_errors()))
+
+    def test_latitude_out_of_bounds_is_invalid(self):
+        from challenges.forms import ChallengeForm
+        for invalid_lat in [90.1, -95.0, 150.0]:
+            data = {
+                'title': 'Out of bounds lat',
+                'category': self.category.pk,
+                'location': 'North Pole',
+                'latitude': invalid_lat,
+                'longitude': 0.0,
+                'problem_severity': 'low',
+                'description': 'Valid description.',
+                'expected_impact': 'Positive impact.',
+            }
+            form = ChallengeForm(data=data)
+            self.assertFalse(form.is_valid())
+            self.assertIn('latitude', form.errors)
+
+    def test_longitude_out_of_bounds_is_invalid(self):
+        from challenges.forms import ChallengeForm
+        for invalid_lng in [180.5, -185.0, 250.0]:
+            data = {
+                'title': 'Out of bounds lng',
+                'category': self.category.pk,
+                'location': 'Fiji',
+                'latitude': 10.0,
+                'longitude': invalid_lng,
+                'problem_severity': 'low',
+                'description': 'Valid description.',
+                'expected_impact': 'Positive impact.',
+            }
+            form = ChallengeForm(data=data)
+            self.assertFalse(form.is_valid())
+            self.assertIn('longitude', form.errors)
+
+
+# ===========================================================================
+# 11. PHASE 1 SMOKE AND REGRESSION TESTS
+# ===========================================================================
+
+class SmokeAndRegressionTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        import io
+        from django.core.management import call_command
+        out = io.StringIO()
+        call_command('populate_db', stdout=out)
+
+    def setUp(self):
+        self.client = Client()
+
+    def test_smoke_all_pages_all_roles(self):
+        """
+        Smoke test using seeded data: requests EVERY GET page as anonymous,
+        student, university, industry and admin users, and asserts there is no 500 error.
+        """
+        challenge = Challenge.objects.filter(status__in=['approved', 'in_progress']).first()
+        solution = Solution.objects.first()
+        project = Project.objects.first()
+        sample_user = User.objects.first()
+
+        urls = [
+            reverse('home'),
+            reverse('about'),
+            reverse('accounts:login'),
+            reverse('accounts:register'),
+            reverse('challenges:list'),
+            reverse('challenges:map'),
+            reverse('challenges:detail', kwargs={'pk': challenge.pk}),
+            reverse('solutions:detail', kwargs={'pk': solution.pk}),
+            reverse('collaborations:list'),
+            reverse('collaborations:detail', kwargs={'pk': project.pk}),
+            reverse('partnerships:directory'),
+            reverse('dashboard:leaderboard'),
+            reverse('dashboard:analytics'),
+            reverse('accounts:profile'),
+            reverse('accounts:user_detail', kwargs={'username': sample_user.username}),
+        ]
+
+        roles_users = [
+            (None, None),  # Anonymous
+            ('student_alex', 'alex123'),
+            ('univ_mit', 'mit123'),
+            ('ind_greenpower', 'green123'),
+            ('admin', 'admin123'),
+        ]
+
+        for username, password in roles_users:
+            if username:
+                logged_in = self.client.login(username=username, password=password)
+                self.assertTrue(logged_in, f"Failed to login user {username}")
+            else:
+                self.client.logout()
+
+            for url in urls:
+                with self.subTest(user=username or 'anonymous', url=url):
+                    response = self.client.get(url)
+                    self.assertNotEqual(
+                        response.status_code, 500,
+                        f"URL '{url}' returned 500 for user '{username or 'anonymous'}'"
+                    )
+
+    def test_challenge_detail_regression_with_accepted_solution(self):
+        """
+        Regression test for challenge detail page when a solution is accepted.
+        Verifies template renders properly with accepted_solution in context and no 500.
+        """
+        challenge = Challenge.objects.filter(solutions__is_accepted=True, status__in=['approved', 'in_progress']).first()
+        self.assertIsNotNone(challenge, "Seeded data should have a challenge with an accepted solution")
+
+        # Anonymous request
+        self.client.logout()
+        res_anon = self.client.get(reverse('challenges:detail', kwargs={'pk': challenge.pk}))
+        self.assertEqual(res_anon.status_code, 200)
+        self.assertIsNotNone(res_anon.context.get('accepted_solution'))
+
+        # Authenticated student request
+        self.client.login(username='student_alex', password='alex123')
+        res_auth = self.client.get(reverse('challenges:detail', kwargs={'pk': challenge.pk}))
+        self.assertEqual(res_auth.status_code, 200)
+        self.assertContains(res_auth, "Launch Project for Solution")
+
+    def test_challenge_detail_regression_without_accepted_solution(self):
+        """
+        Regression test for challenge detail page when NO solution is accepted.
+        Verifies template renders properly without errors and does not show Launch Project button.
+        """
+        category = Category.objects.first()
+        user = User.objects.filter(role='student').first()
+        ch_no_accepted = Challenge.objects.create(
+            title="Challenge without accepted solutions",
+            category=category,
+            creator=user,
+            location="Testville",
+            problem_severity="low",
+            status="approved",
+            description="A problem waiting for solutions.",
+            expected_impact="High impact",
+        )
+        # Create an unaccepted solution
+        Solution.objects.create(
+            challenge=ch_no_accepted,
+            creator=user,
+            title="Pending solution",
+            description="Not yet accepted",
+            proposed_implementation="Steps",
+            expected_outcome="Outcome",
+            required_resources="Resources",
+            estimated_duration="2 weeks",
+            is_accepted=False
+        )
+
+        self.client.login(username='student_alex', password='alex123')
+        res = self.client.get(reverse('challenges:detail', kwargs={'pk': ch_no_accepted.pk}))
+        self.assertEqual(res.status_code, 200)
+        self.assertIsNone(res.context.get('accepted_solution'))
+        self.assertNotContains(res, "Launch Project for Solution")

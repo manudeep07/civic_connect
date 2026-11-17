@@ -2,55 +2,112 @@
 
 {% block title %}Challenge Map – CivicConnect{% endblock %}
 
-{% block extra_head %}
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
 <style>
-  #challenge-map { height: 70vh; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,.12); }
-  .legend { background: white; padding: 12px 16px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,.15); line-height: 1.8; }
-  .legend-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 6px; }
+  #challenge-map { height: 72vh; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,.1); z-index: 1; }
+  .map-filter-card { border-radius: 12px; background: #fff; box-shadow: 0 2px 12px rgba(0,0,0,.06); }
+  .legend { background: white; padding: 10px 14px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,.15); font-size: 0.8rem; line-height: 1.6; }
+  .legend-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+  .popup-card { min-width: 200px; max-width: 260px; font-family: inherit; }
+  .popup-title { font-weight: 700; font-size: 0.95rem; margin-bottom: 4px; color: #1e293b; }
+  .popup-location { font-size: 0.8rem; color: #64748b; margin-bottom: 6px; }
+  .popup-meta { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container-fluid py-4 px-4">
 
-  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
     <div>
       <h2 class="fw-bold text-dark mb-1"><i class="bi bi-geo-alt-fill text-danger me-2"></i>Challenge Map</h2>
       <p class="text-muted mb-0">Geographical view of societal challenges across communities.</p>
     </div>
     <div class="d-flex gap-2">
-      <span class="badge bg-success py-2 px-3">{{ total_mapped }} Mapped</span>
+      <span class="badge bg-success py-2 px-3 align-self-center"><span id="visible-count">{{ total_mapped }}</span> Mapped</span>
       {% if total_unmapped %}
-      <span class="badge bg-warning text-dark py-2 px-3">{{ total_unmapped }} Without Coordinates</span>
+        <span class="badge bg-warning text-dark py-2 px-3 align-self-center">{{ total_unmapped }} Without Coordinates</span>
       {% endif %}
-      <a href="{% url 'challenges:list' %}" class="btn btn-outline-secondary btn-sm">
+      <a href="{% url 'challenges:list' %}" class="btn btn-outline-secondary btn-sm align-self-center">
         <i class="bi bi-list-ul me-1"></i> List View
       </a>
     </div>
   </div>
 
-  {% if total_mapped == 0 %}
-  <div class="alert alert-info">
-    <i class="bi bi-info-circle me-2"></i>
-    No challenges have been geocoded yet. Location coordinates are populated automatically when challenges are saved.
+  <!-- Interactive Map Filters -->
+  <div class="card map-filter-card border-0 p-3 mb-3">
+    <div class="row g-2 align-items-center">
+      <div class="col-md-4">
+        <label for="filter-category" class="form-label small fw-semibold text-muted mb-1">Filter by Category</label>
+        <select id="filter-category" class="form-select form-select-sm">
+          <option value="all">All Categories</option>
+          {% for cat in categories %}
+            <option value="{{ cat }}">{{ cat }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label for="filter-severity" class="form-label small fw-semibold text-muted mb-1">Filter by Severity</label>
+        <select id="filter-severity" class="form-select form-select-sm">
+          <option value="all">All Severities</option>
+          <option value="critical">Critical</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label for="filter-status" class="form-label small fw-semibold text-muted mb-1">Filter by Status</label>
+        <select id="filter-status" class="form-select form-select-sm">
+          <option value="all">All Statuses</option>
+          <option value="approved">Approved</option>
+          <option value="in_progress">In Progress</option>
+          <option value="solved">Solved</option>
+        </select>
+      </div>
+    </div>
   </div>
-  {% endif %}
+
+  <!-- Empty state alert when no challenges mapped -->
+  <div id="no-markers-alert" class="alert alert-info d-flex justify-content-between align-items-center mb-3" {% if total_mapped > 0 %}style="display:none !important;"{% endif %}>
+    <div>
+      <i class="bi bi-info-circle-fill me-2"></i>
+      There are currently no mapped challenges matching your criteria.
+    </div>
+    <a href="{% url 'challenges:list' %}" class="btn btn-primary btn-sm ms-3 text-nowrap">
+      <i class="bi bi-arrow-right me-1"></i> Browse Challenge List
+    </a>
+  </div>
 
   <div id="challenge-map"></div>
 
 </div>
+
+<!-- Safely inject markers data without raw HTML injection -->
+{{ markers|json_script:"markers-data" }}
 {% endblock %}
 
-{% block extra_scripts %}
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script>
-  const markers = {{ markers_json|safe }};
+document.addEventListener('DOMContentLoaded', function() {
+  const markersDataEl = document.getElementById('markers-data');
+  const allMarkers = markersDataEl ? JSON.parse(markersDataEl.textContent) : [];
+  const noMarkersAlert = document.getElementById('no-markers-alert');
+  const visibleCountEl = document.getElementById('visible-count');
 
-  const map = L.map('challenge-map').setView([20, 78], 4);
+  const filterCategory = document.getElementById('filter-category');
+  const filterSeverity = document.getElementById('filter-severity');
+  const filterStatus = document.getElementById('filter-status');
+
+  const map = L.map('challenge-map').setView([20.5937, 78.9629], 4);
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     maxZoom: 18
   }).addTo(map);
 
@@ -61,45 +118,124 @@
     'low':      '#198754'
   };
 
-  function makeIcon(severity) {
+  function makeSeverityIcon(severity) {
     const color = severityColors[severity] || '#6c757d';
     return L.divIcon({
       className: '',
-      html: `<div style="background:${color};width:14px;height:14px;border-radius:50%;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,.4);"></div>`,
+      html: `<div style="background:${color};width:14px;height:14px;border-radius:50%;border:2px solid white;box-shadow:0 1px 5px rgba(0,0,0,0.45);"></div>`,
       iconSize: [14, 14],
       iconAnchor: [7, 7],
-      popupAnchor: [0, -10]
+      popupAnchor: [0, -9]
     });
   }
 
-  markers.forEach(function(m) {
-    L.marker([m.lat, m.lng], { icon: makeIcon(m.severity) })
-      .addTo(map)
-      .bindPopup(`
-        <strong>${m.title}</strong><br>
-        <small class="text-muted"><i class="bi bi-geo-alt"></i> ${m.location}</small><br>
-        <span class="badge" style="background:${severityColors[m.severity] || '#6c757d'};color:#fff;">${m.severity}</span>
-        <span class="ms-1 badge bg-secondary">${m.category}</span><br>
-        <a href="/challenges/${m.id}/" class="btn btn-sm btn-primary mt-2 d-block">View Challenge</a>
-      `);
-  });
-
-  if (markers.length > 0) {
-    const group = L.featureGroup(markers.map(m => L.marker([m.lat, m.lng])));
-    map.fitBounds(group.getBounds().pad(0.1));
+  // Safe HTML helper to escape untrusted text
+  function escapeHtml(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
   }
 
-  // Legend
+  function createPopupContent(m) {
+    const card = document.createElement('div');
+    card.className = 'popup-card';
+
+    const titleEl = document.createElement('div');
+    titleEl.className = 'popup-title';
+    titleEl.textContent = m.title;
+    card.appendChild(titleEl);
+
+    const locEl = document.createElement('div');
+    locEl.className = 'popup-location';
+    locEl.innerHTML = '<i class="bi bi-geo-alt"></i> ' + escapeHtml(m.location);
+    card.appendChild(locEl);
+
+    const metaEl = document.createElement('div');
+    metaEl.className = 'popup-meta';
+
+    const sevBadge = document.createElement('span');
+    sevBadge.className = 'badge';
+    sevBadge.style.backgroundColor = severityColors[m.severity] || '#6c757d';
+    sevBadge.textContent = m.severity;
+    metaEl.appendChild(sevBadge);
+
+    if (m.category) {
+      const catBadge = document.createElement('span');
+      catBadge.className = 'badge bg-secondary';
+      catBadge.textContent = m.category;
+      metaEl.appendChild(catBadge);
+    }
+    card.appendChild(metaEl);
+
+    const btn = document.createElement('a');
+    btn.className = 'btn btn-sm btn-primary w-100';
+    btn.href = '/challenges/' + encodeURIComponent(m.id) + '/';
+    btn.textContent = 'View Challenge';
+    card.appendChild(btn);
+
+    return card;
+  }
+
+  let clusterGroup = L.markerClusterGroup({
+    showCoverageOnHover: false,
+    maxClusterRadius: 40
+  });
+  map.addLayer(clusterGroup);
+
+  function renderFilteredMarkers() {
+    clusterGroup.clearLayers();
+
+    const catVal = filterCategory ? filterCategory.value : 'all';
+    const sevVal = filterSeverity ? filterSeverity.value : 'all';
+    const statVal = filterStatus ? filterStatus.value : 'all';
+
+    const filtered = allMarkers.filter(function(m) {
+      if (catVal !== 'all' && m.category !== catVal) return false;
+      if (sevVal !== 'all' && m.severity !== sevVal) return false;
+      if (statVal !== 'all' && m.status !== statVal) return false;
+      return true;
+    });
+
+    if (visibleCountEl) visibleCountEl.textContent = filtered.length;
+
+    if (filtered.length === 0) {
+      if (noMarkersAlert) noMarkersAlert.style.setProperty('display', 'flex', 'important');
+    } else {
+      if (noMarkersAlert) noMarkersAlert.style.setProperty('display', 'none', 'important');
+
+      filtered.forEach(function(m) {
+        const marker = L.marker([m.lat, m.lng], { icon: makeSeverityIcon(m.severity) });
+        marker.bindPopup(createPopupContent(m));
+        clusterGroup.addLayer(marker);
+      });
+
+      try {
+        const bounds = clusterGroup.getBounds();
+        if (bounds.isValid()) {
+          map.fitBounds(bounds.pad(0.1));
+        }
+      } catch (err) {}
+    }
+  }
+
+  renderFilteredMarkers();
+
+  if (filterCategory) filterCategory.addEventListener('change', renderFilteredMarkers);
+  if (filterSeverity) filterSeverity.addEventListener('change', renderFilteredMarkers);
+  if (filterStatus) filterStatus.addEventListener('change', renderFilteredMarkers);
+
+  // Map Legend
   const legend = L.control({ position: 'bottomright' });
   legend.onAdd = function() {
     const div = L.DomUtil.create('div', 'legend');
     div.innerHTML = '<strong>Severity</strong><br>';
-    [['critical','#dc3545'],['high','#fd7e14'],['medium','#0d6efd'],['low','#198754']].forEach(([label, color]) => {
-      div.innerHTML += `<span class="legend-dot" style="background:${color}"></span>${label}<br>`;
+    [['critical', '#dc3545'], ['high', '#fd7e14'], ['medium', '#0d6efd'], ['low', '#198754']].forEach(function(item) {
+      div.innerHTML += '<span class="legend-dot" style="background:' + item[1] + '"></span>' + item[0] + '<br>';
     });
     return div;
   };
   legend.addTo(map);
+});
 </script>
 {% endblock %}
-

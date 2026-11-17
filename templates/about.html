@@ -1,135 +1,268 @@
 {% extends 'base.html' %}
 
-{% block title %}About CivicConnect – INT253 Course Outcomes Mapping{% endblock %}
+{% block title %}About CivicConnect – Collaborative Problem-Solving Platform{% endblock %}
 
 {% block content %}
 <div class="container py-5">
   <div class="row justify-content-center">
     <div class="col-lg-10">
-      <!-- Header -->
-      <div class="text-center mb-5">
-        <span class="badge bg-primary text-uppercase px-3 py-2 rounded-pill fw-semibold mb-2">INT253 Course Project</span>
-        <h1 class="display-5 fw-bold text-dark">CivicConnect Architecture & Outcomes</h1>
-        <p class="lead text-muted">A full-stack Django platform mapping modern software engineering principles with INT253 Course Outcomes.</p>
-      </div>
 
-      <!-- Overview Card -->
-      <div class="card card-civic-flat p-4 mb-4 border-0 shadow-sm">
-        <h4 class="fw-bold text-dark mb-3"><i class="bi bi-info-circle-fill text-primary me-2"></i>Project Mission</h4>
-        <p class="text-secondary mb-0">
-          <strong>CivicConnect</strong> is a societal challenge crowdsourcing and co-solution platform that bridges the gap between citizens reporting real-world challenges, students innovating sustainable answers, academic institutions offering research mentorship, and industry leaders sponsoring pilot implementations.
+      <!-- Header Section -->
+      <div class="text-center mb-5">
+        <span class="badge bg-primary text-uppercase px-3 py-2 rounded-pill fw-semibold mb-2">About CivicConnect</span>
+        <h1 class="display-5 fw-bold text-dark">Empowering Communities Through Collaborative Innovation</h1>
+        <p class="lead text-muted mx-auto" style="max-width: 750px;">
+          CivicConnect is a digital platform that crowdsources real-world societal challenges and facilitates collaborative problem-solving across citizens, students, universities, and industries.
         </p>
       </div>
 
-      <!-- INT253 Course Outcomes Mapping Grid -->
-      <h3 class="fw-bold text-dark mt-5 mb-4"><i class="bi bi-check2-circle text-success me-2"></i>Demonstration of INT253 Course Outcomes</h3>
-
-      <div class="row g-4">
-        <!-- CO1 -->
-        <div class="col-md-6">
-          <div class="card card-civic h-100 p-4 border-0">
-            <div class="d-flex align-items-center gap-2 mb-2">
-              <span class="badge bg-primary fs-6">CO1</span>
-              <h5 class="fw-bold mb-0 text-dark">Installation & App Structuring</h5>
-            </div>
-            <p class="small text-muted mb-3">Project creation, settings configuration, and modular multi-app architecture.</p>
-            <ul class="small text-secondary ps-3 mb-0">
-              <li>Configured Django with clean settings separation.</li>
-              <li>Divided monolithic concerns into 6 modular apps: <code>accounts</code>, <code>challenges</code>, <code>solutions</code>, <code>collaborations</code>, <code>partnerships</code>, and <code>dashboard</code>.</li>
-              <li>Configured static files, media uploads, and custom context processors.</li>
-            </ul>
+      <!-- Mission Card -->
+      <div class="card card-civic-flat p-4 p-md-5 mb-5 border-0 shadow-sm" style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);">
+        <div class="row align-items-center g-4">
+          <div class="col-md-8">
+            <h3 class="fw-bold text-dark mb-3"><i class="bi bi-bullseye text-primary me-2"></i>Our Mission</h3>
+            <p class="text-secondary mb-0 leading-relaxed">
+              Real-world societal challenges—from clean water and sustainable agriculture to urban waste sorting and healthcare access—cannot be solved in isolation. CivicConnect creates a transparent, open ecosystem where grassroots problems meet academic ingenuity and industry sponsorship to turn ideas into measurable community impact.
+            </p>
           </div>
-        </div>
-
-        <!-- CO2 -->
-        <div class="col-md-6">
-          <div class="card card-civic h-100 p-4 border-0">
-            <div class="d-flex align-items-center gap-2 mb-2">
-              <span class="badge bg-success fs-6">CO2</span>
-              <h5 class="fw-bold mb-0 text-dark">Views, URLs & HTTP Methods</h5>
+          <div class="col-md-4 text-center">
+            <div class="p-3 bg-white rounded-4 shadow-sm border">
+              <i class="bi bi-globe-americas text-teal display-4 d-block mb-2"></i>
+              <div class="fw-bold text-dark">Global Collaboration</div>
+              <small class="text-muted">Local Action, Scalable Solutions</small>
             </div>
-            <p class="small text-muted mb-3">URL routing, RESTful design patterns, and HTTP request/response lifecycles.</p>
-            <ul class="small text-secondary ps-3 mb-0">
-              <li>App-level URL namespacing (<code>challenges:list</code>, <code>dashboard:index</code>).</li>
-              <li>Multi-criteria GET queries: searching by title/keyword, filtering by category, severity, status, and sorting.</li>
-              <li>Built-in pagination with <code>Paginator</code> handling dynamic page numbers and empty edge cases.</li>
-            </ul>
-          </div>
-        </div>
-
-        <!-- CO3 -->
-        <div class="col-md-6">
-          <div class="card card-civic h-100 p-4 border-0">
-            <div class="d-flex align-items-center gap-2 mb-2">
-              <span class="badge bg-info text-dark fs-6">CO3</span>
-              <h5 class="fw-bold mb-0 text-dark">Django Templates & UI</h5>
-            </div>
-            <p class="small text-muted mb-3">Template inheritance, dynamic tags, context processors, and responsive UI.</p>
-            <ul class="small text-secondary ps-3 mb-0">
-              <li>Master template <code>base.html</code> with modular blocks and modern navbar.</li>
-              <li>Custom context processor <code>user_roles_processor</code> exposing role flags across all templates.</li>
-              <li>Modern Bootstrap 5 UI, responsive cards, and clean typography.</li>
-            </ul>
-          </div>
-        </div>
-
-        <!-- CO4 -->
-        <div class="col-md-6">
-          <div class="card card-civic h-100 p-4 border-0">
-            <div class="d-flex align-items-center gap-2 mb-2">
-              <span class="badge bg-warning text-dark fs-6">CO4</span>
-              <h5 class="fw-bold mb-0 text-dark">Django Forms & Validation</h5>
-            </div>
-            <p class="small text-muted mb-3">ModelForms, field widgets, CSRF tokens, and custom clean() validation.</p>
-            <ul class="small text-secondary ps-3 mb-0">
-              <li>Custom <code>UserRegistrationForm</code> with password confirmation and role-specific validation.</li>
-              <li><code>ChallengeForm</code>, <code>SolutionForm</code>, <code>ProjectForm</code>, and <code>PartnershipRequestForm</code>.</li>
-              <li>Enforced CSRF protection on all POST requests and server-side validation error displays.</li>
-            </ul>
-          </div>
-        </div>
-
-        <!-- CO5 -->
-        <div class="col-md-6">
-          <div class="card card-civic h-100 p-4 border-0">
-            <div class="d-flex align-items-center gap-2 mb-2">
-              <span class="badge bg-danger fs-6">CO5</span>
-              <h5 class="fw-bold mb-0 text-dark">Models, ORM & Django Admin</h5>
-            </div>
-            <p class="small text-muted mb-3">Relational database schemas, migrations, aggregations, and admin customization.</p>
-            <ul class="small text-secondary ps-3 mb-0">
-              <li>10 relational models: <code>CustomUser</code>, <code>Category</code>, <code>Challenge</code>, <code>Vote</code>, <code>Comment</code>, <code>Solution</code>, <code>Project</code>, <code>ProjectMembership</code>, <code>PartnershipRequest</code>, <code>Activity</code>.</li>
-              <li>Relational constraints: <code>ForeignKey</code>, <code>UniqueConstraint</code> (one vote per user, unique project memberships).</li>
-              <li>Customized Django Admin with 1-click batch actions (e.g., Approve Challenges, Reject Challenges).</li>
-            </ul>
-          </div>
-        </div>
-
-        <!-- CO6 -->
-        <div class="col-md-6">
-          <div class="card card-civic h-100 p-4 border-0">
-            <div class="d-flex align-items-center gap-2 mb-2">
-              <span class="badge bg-dark fs-6">CO6</span>
-              <h5 class="fw-bold mb-0 text-dark">Sessions, Cookies & Auth</h5>
-            </div>
-            <p class="small text-muted mb-3">Authentication framework, session security, and role-based access control.</p>
-            <ul class="small text-secondary ps-3 mb-0">
-              <li>Django authentication with secure password hashing (PBKDF2).</li>
-              <li>4 distinct roles: Citizen/Student, University, Industry, and Platform Administrator.</li>
-              <li>Role-specific dashboards dynamically query DB stats based on user session.</li>
-              <li>Django Messages Framework communicating flash notifications.</li>
-            </ul>
           </div>
         </div>
       </div>
 
-      <!-- Quick Action -->
-      <div class="text-center mt-5">
-        <a href="{% url 'challenges:list' %}" class="btn btn-civic-teal btn-lg px-4 me-2">Explore Live Platform</a>
-        <a href="{% url 'accounts:register' %}" class="btn btn-outline-secondary btn-lg px-4">Create Test Account</a>
+      <!-- How It Works Section -->
+      <div class="mb-5">
+        <div class="text-center mb-4">
+          <h2 class="fw-bold text-dark">How CivicConnect Works</h2>
+          <p class="text-muted">From localized community concern to verified field trial in four collaborative steps.</p>
+        </div>
+
+        <div class="row g-4">
+          <div class="col-md-6 col-lg-3">
+            <div class="card card-civic h-100 p-4 border-0 shadow-sm">
+              <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center mb-3" style="width: 44px; height: 44px;">
+                <i class="bi bi-pencil-square fs-5"></i>
+              </div>
+              <h5 class="fw-bold text-dark mb-2">1. Post a Challenge</h5>
+              <p class="small text-secondary mb-0">
+                Citizens, community organizers, and institutions submit societal challenges with affected demographics, severity levels, and geographic coordinates.
+              </p>
+            </div>
+          </div>
+
+          <div class="col-md-6 col-lg-3">
+            <div class="card card-civic h-100 p-4 border-0 shadow-sm">
+              <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center mb-3" style="width: 44px; height: 44px;">
+                <i class="bi bi-lightbulb fs-5"></i>
+              </div>
+              <h5 class="fw-bold text-dark mb-2">2. Propose Solutions</h5>
+              <p class="small text-secondary mb-0">
+                Students, researchers, and innovators propose actionable solutions with technical specifications, timelines, and resource estimates.
+              </p>
+            </div>
+          </div>
+
+          <div class="col-md-6 col-lg-3">
+            <div class="card card-civic h-100 p-4 border-0 shadow-sm">
+              <div class="bg-teal text-white rounded-circle d-flex align-items-center justify-content-center mb-3" style="width: 44px; height: 44px; background-color: #0d9488;">
+                <i class="bi bi-people-fill fs-5"></i>
+              </div>
+              <h5 class="fw-bold text-dark mb-2">3. Collaborate</h5>
+              <p class="small text-secondary mb-0">
+                Challenge creators accept promising proposals and launch collaborative project teams, bringing together student developers and faculty mentors.
+              </p>
+            </div>
+          </div>
+
+          <div class="col-md-6 col-lg-3">
+            <div class="card card-civic h-100 p-4 border-0 shadow-sm">
+              <div class="bg-warning text-dark rounded-circle d-flex align-items-center justify-content-center mb-3" style="width: 44px; height: 44px;">
+                <i class="bi bi-award-fill fs-5"></i>
+              </div>
+              <h5 class="fw-bold text-dark mb-2">4. Pilot & Track Impact</h5>
+              <p class="small text-secondary mb-0">
+                Verified industry partners sponsor field trials as Pilots, deploy hardware or software, and monitor real-world progress toward completion.
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
+
+      <!-- Stakeholder Roles Section -->
+      <div class="mb-5">
+        <div class="text-center mb-4">
+          <h2 class="fw-bold text-dark">Built for Four Key Stakeholders</h2>
+          <p class="text-muted">Tailored workspaces and permissions for each member of the problem-solving ecosystem.</p>
+        </div>
+
+        <div class="row g-4">
+          <div class="col-md-6">
+            <div class="card p-4 border-0 shadow-sm h-100">
+              <div class="d-flex align-items-center gap-3 mb-3">
+                <span class="badge bg-primary fs-6 py-2 px-3"><i class="bi bi-person-fill me-1"></i> Citizen / Student</span>
+              </div>
+              <p class="text-secondary small mb-3">
+                Frontline innovators and community advocates who encounter societal problems firsthand.
+              </p>
+              <ul class="text-secondary small ps-3 mb-0">
+                <li>Submit community challenges with photos and map coordinates.</li>
+                <li>Propose solutions, brainstorm ideas, and upvote important initiatives.</li>
+                <li>Join collaborative project teams and gain real-world engineering experience.</li>
+                <li>Earn points and badges on the platform Contributor Leaderboard.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <div class="card p-4 border-0 shadow-sm h-100">
+              <div class="d-flex align-items-center gap-3 mb-3">
+                <span class="badge bg-success fs-6 py-2 px-3"><i class="bi bi-mortarboard-fill me-1"></i> University</span>
+              </div>
+              <p class="text-secondary small mb-3">
+                Academic institutions, departments, and research centers driving knowledge creation.
+              </p>
+              <ul class="text-secondary small ps-3 mb-0">
+                <li>Publish research-driven challenges aligned with faculty expertise.</li>
+                <li>Assign faculty mentors to guide interdisciplinary student projects.</li>
+                <li>Provide laboratory access, validation testing, and academic credit.</li>
+                <li>Partner with industry leaders for funded research grants.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <div class="card p-4 border-0 shadow-sm h-100">
+              <div class="d-flex align-items-center gap-3 mb-3">
+                <span class="badge bg-info text-dark fs-6 py-2 px-3"><i class="bi bi-building me-1"></i> Industry Partner</span>
+              </div>
+              <p class="text-secondary small mb-3">
+                Corporate enterprises, technology companies, and CSR initiatives funding innovation.
+              </p>
+              <ul class="text-secondary small ps-3 mb-0">
+                <li>Browse vetted societal challenges across 9 key sustainable domains.</li>
+                <li>Sponsor promising project teams as official industry **Pilots**.</li>
+                <li>Provide engineering mentorship, hardware kits, and cloud resources.</li>
+                <li>Propose formal strategic partnerships to universities.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <div class="card p-4 border-0 shadow-sm h-100">
+              <div class="d-flex align-items-center gap-3 mb-3">
+                <span class="badge bg-danger fs-6 py-2 px-3"><i class="bi bi-shield-lock-fill me-1"></i> Administrator</span>
+              </div>
+              <p class="text-secondary small mb-3">
+                Platform moderators maintaining safety, institutional verification, and content quality.
+              </p>
+              <ul class="text-secondary small ps-3 mb-0">
+                <li>Review and moderate pending challenge submissions with one-click actions.</li>
+                <li>Verify university and industry organizations before they send proposals.</li>
+                <li>Inspect platform analytics, user engagement, and project health.</li>
+                <li>Manage domain categories and oversee platform security.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Frequently Asked Questions -->
+      <div class="mb-5">
+        <div class="text-center mb-4">
+          <h2 class="fw-bold text-dark">Frequently Asked Questions</h2>
+          <p class="text-muted">Common questions about using and contributing to CivicConnect.</p>
+        </div>
+
+        <div class="accordion" id="faqAccordion">
+          <div class="accordion-item border-0 mb-3 shadow-sm rounded-3 overflow-hidden">
+            <h2 class="accordion-header" id="faqHeading1">
+              <button class="accordion-button fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#faqCollapse1" aria-expanded="true" aria-controls="faqCollapse1">
+                Who can register and submit challenges on CivicConnect?
+              </button>
+            </h2>
+            <div id="faqCollapse1" class="accordion-collapse collapse show" aria-labelledby="faqHeading1" data-bs-parent="#faqAccordion">
+              <div class="accordion-body text-secondary small">
+                Anyone can register as a Citizen / Student, University representative, or Industry partner. Citizens and students can immediately submit challenges, propose solutions, and join projects. Organizations undergo administrative verification to ensure authenticity.
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item border-0 mb-3 shadow-sm rounded-3 overflow-hidden">
+            <h2 class="accordion-header" id="faqHeading2">
+              <button class="accordion-button collapsed fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#faqCollapse2" aria-expanded="false" aria-controls="faqCollapse2">
+                How does challenge moderation work?
+              </button>
+            </h2>
+            <div id="faqCollapse2" class="accordion-collapse collapse" aria-labelledby="faqHeading2" data-bs-parent="#faqAccordion">
+              <div class="accordion-body text-secondary small">
+                Challenges submitted by citizens start in a <em>Pending</em> review status. Platform administrators review submissions to ensure they meet community standards before approving them for public view and solutions. If a creator edits an approved challenge, it returns to pending status for re-review.
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item border-0 mb-3 shadow-sm rounded-3 overflow-hidden">
+            <h2 class="accordion-header" id="faqHeading3">
+              <button class="accordion-button collapsed fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#faqCollapse3" aria-expanded="false" aria-controls="faqCollapse3">
+                What is an Industry Pilot?
+              </button>
+            </h2>
+            <div id="faqCollapse3" class="accordion-collapse collapse" aria-labelledby="faqHeading3" data-bs-parent="#faqAccordion">
+              <div class="accordion-body text-secondary small">
+                A Pilot represents an active project that has received formal sponsorship from a verified industry partner. The industry partner provides resources, mentorship, or testing environments to validate the solution in a real-world setting.
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item border-0 mb-3 shadow-sm rounded-3 overflow-hidden">
+            <h2 class="accordion-header" id="faqHeading4">
+              <button class="accordion-button collapsed fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#faqCollapse4" aria-expanded="false" aria-controls="faqCollapse4">
+                How are Leaderboard points awarded?
+              </button>
+            </h2>
+            <div id="faqCollapse4" class="accordion-collapse collapse" aria-labelledby="faqHeading4" data-bs-parent="#faqAccordion">
+              <div class="accordion-body text-secondary small">
+                Contributors earn points for positive platform actions: <strong>10 points</strong> for submitting a challenge, <strong>25 points</strong> when their proposed solution is accepted, and <strong>50 points</strong> when a collaborative project reaches completion.
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item border-0 mb-3 shadow-sm rounded-3 overflow-hidden">
+            <h2 class="accordion-header" id="faqHeading5">
+              <button class="accordion-button collapsed fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#faqCollapse5" aria-expanded="false" aria-controls="faqCollapse5">
+                Is CivicConnect open and free to use?
+              </button>
+            </h2>
+            <div id="faqCollapse5" class="accordion-collapse collapse" aria-labelledby="faqHeading5" data-bs-parent="#faqAccordion">
+              <div class="accordion-body text-secondary small">
+                Yes. CivicConnect is designed as open public-interest technology. There are no fees for citizens to submit challenges, students to participate in projects, or universities and industries to collaborate.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Call to Action Banner -->
+      <div class="text-center p-5 bg-dark text-white rounded-4 shadow-sm">
+        <h3 class="fw-bold mb-2">Ready to Make a Tangible Impact?</h3>
+        <p class="text-light-50 mb-4 mx-auto" style="max-width: 600px;">
+          Explore challenges happening right now in your community, or submit an issue that needs an innovative solution.
+        </p>
+        <div class="d-flex justify-content-center gap-3 flex-wrap">
+          <a href="{% url 'challenges:list' %}" class="btn btn-civic-teal px-4 fw-semibold">
+            <i class="bi bi-compass me-1"></i> Explore Challenges
+          </a>
+          <a href="{% url 'accounts:register' %}" class="btn btn-outline-light px-4">
+            <i class="bi bi-person-plus me-1"></i> Join the Community
+          </a>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
 {% endblock %}
-

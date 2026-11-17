@@ -16,7 +16,6 @@ from accounts.models import UserScore
 def challenge_list_view(request):
     """
     Browse challenges with multi-criteria search, category filters, sorting, and pagination.
-    Demonstrates INT253 CO2 (Views & HTTP GET) & CO5 (Django ORM Queries & Aggregations).
     """
     # Public view shows approved, in-progress, and solved challenges
     queryset = Challenge.objects.filter(status__in=['approved', 'in_progress', 'solved'])
@@ -88,7 +87,6 @@ def challenge_list_view(request):
 def challenge_detail_view(request, pk):
     """
     Detailed challenge view, including proposed solutions, votes, and community comments.
-    Demonstrates INT253 CO3 (Templates) and CO5 (ORM Relationships).
     """
     challenge = get_object_or_404(Challenge, pk=pk)
 
@@ -106,6 +104,7 @@ def challenge_detail_view(request, pk):
     comments = challenge.comments.select_related('user').all()
     solutions = challenge.solutions.select_related('creator').all()
     projects = challenge.projects.select_related('lead').all()
+    accepted_solution = challenge.solutions.filter(is_accepted=True).first()
 
     context = {
         'challenge': challenge,
@@ -114,6 +113,7 @@ def challenge_detail_view(request, pk):
         'comments': comments,
         'solutions': solutions,
         'projects': projects,
+        'accepted_solution': accepted_solution,
     }
     return render(request, 'challenges/challenge_detail.html', context)
 
@@ -122,7 +122,6 @@ def challenge_detail_view(request, pk):
 def challenge_create_view(request):
     """
     Submit a societal challenge.
-    Demonstrates INT253 CO4 (Form Handling & Validation).
     """
     if request.method == 'POST':
         form = ChallengeForm(request.POST, request.FILES)
@@ -326,7 +325,6 @@ import json
 def challenge_map_view(request):
     """
     Interactive Leaflet map of approved challenges with geocoded lat/lng.
-    Demonstrates Phase 3 feature: geospatial visualisation.
     """
     challenges_qs = Challenge.objects.filter(
         status__in=['approved', 'in_progress', 'solved'],
@@ -351,11 +349,15 @@ def challenge_map_view(request):
         for ch in challenges_qs
     ]
 
+    categories = list(Category.objects.values_list('name', flat=True))
+
     return render(request, 'challenges/challenge_map.html', {
+        'markers': markers,
         'markers_json': json.dumps(markers),
         'total_mapped': len(markers),
         'total_unmapped': Challenge.objects.filter(
             status__in=['approved', 'in_progress', 'solved'],
             latitude__isnull=True
         ).count(),
+        'categories': categories,
     })

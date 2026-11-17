@@ -13,7 +13,6 @@ def home_view(request):
     """
     CivicConnect Landing Page.
     Fetches real-time dynamic statistics, featured challenges, partnerships, and impact metrics.
-    Demonstrates INT253 CO2 (Views & Context) and CO5 (ORM Queries).
     """
     # Featured challenges (approved/in_progress, ordered by votes & recency)
     featured_challenges = Challenge.objects.filter(
@@ -55,7 +54,7 @@ def home_view(request):
 
 def about_view(request):
     """
-    About CivicConnect & INT253 Academic Course Project overview.
+    About CivicConnect platform overview, mission, workflow, and stakeholder roles.
     """
     return render(request, 'about.html')
 

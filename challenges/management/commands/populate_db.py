@@ -87,6 +87,8 @@ class Command(BaseCommand):
                 "category": categories["agriculture"],
                 "creator": users["univ_iit"],
                 "location": "Nashik & Pune Rural District, Maharashtra, India",
+                "latitude": 19.9975,
+                "longitude": 73.7898,
                 "severity": "critical",
                 "status": "in_progress",
                 "organization_name": "IIT Bombay Rural Technology Cell",
@@ -107,6 +109,8 @@ class Command(BaseCommand):
                 "category": categories["waste-management"],
                 "creator": users["citizen_john"],
                 "location": "Austin & San Antonio Municipal Areas, Texas, USA",
+                "latitude": 30.2672,
+                "longitude": -97.7431,
                 "severity": "high",
                 "status": "in_progress",
                 "organization_name": "Texas Clean Rivers Alliance",
@@ -127,6 +131,8 @@ class Command(BaseCommand):
                 "category": categories["environment"],
                 "creator": users["citizen_john"],
                 "location": "Tampa Bay Estuary, Florida, USA",
+                "latitude": 27.7634,
+                "longitude": -82.5437,
                 "severity": "high",
                 "status": "approved",
                 "organization_name": "Coastal Marine Conservation Forum",
@@ -147,6 +153,8 @@ class Command(BaseCommand):
                 "category": categories["healthcare"],
                 "creator": users["citizen_fatima"],
                 "location": "Turkana & Marsabit Counties, Northern Kenya",
+                "latitude": 3.1167,
+                "longitude": 35.6000,
                 "severity": "critical",
                 "status": "in_progress",
                 "organization_name": "Rural Health Outreach Alliance",
@@ -167,6 +175,8 @@ class Command(BaseCommand):
                 "category": categories["education"],
                 "creator": users["univ_stanford"],
                 "location": "Bastar District, Chhattisgarh, India",
+                "latitude": 19.0740,
+                "longitude": 82.0238,
                 "severity": "high",
                 "status": "approved",
                 "organization_name": "Stanford Learning Outreach Foundation",
@@ -187,6 +197,8 @@ class Command(BaseCommand):
                 "category": categories["public-safety"],
                 "creator": users["student_priya"],
                 "location": "Metro Manila River Basin, Philippines",
+                "latitude": 14.5995,
+                "longitude": 120.9842,
                 "severity": "high",
                 "status": "approved",
                 "organization_name": "Disaster Resilience Youth Circle",
@@ -207,6 +219,8 @@ class Command(BaseCommand):
                 "category": categories["technology-and-innovation"],
                 "creator": users["student_alex"],
                 "location": "Chicago River & Industrial Corridors, Illinois, USA",
+                "latitude": 41.8781,
+                "longitude": -87.6298,
                 "severity": "medium",
                 "status": "pending",  # Specifically PENDING to demonstrate Admin 1-Click Approval!
                 "organization_name": "Urban Waterway Guardians",
@@ -231,6 +245,8 @@ class Command(BaseCommand):
                     "category": cdata["category"],
                     "creator": cdata["creator"],
                     "location": cdata["location"],
+                    "latitude": cdata.get("latitude"),
+                    "longitude": cdata.get("longitude"),
                     "problem_severity": cdata["severity"],
                     "status": cdata["status"],
                     "organization_name": cdata["organization_name"],
@@ -238,6 +254,10 @@ class Command(BaseCommand):
                     "expected_impact": cdata["expected_impact"],
                 }
             )
+            if not created and (ch.latitude is None or ch.longitude is None):
+                ch.latitude = cdata.get("latitude")
+                ch.longitude = cdata.get("longitude")
+                ch.save(update_fields=['latitude', 'longitude'])
             challenges[cdata["key"]] = ch
 
         self.stdout.write(self.style.SUCCESS(f"Created/Verified {len(challenges)} societal challenges."))

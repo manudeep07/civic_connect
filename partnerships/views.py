@@ -16,7 +16,6 @@ User = get_user_model()
 def partner_directory_view(request):
     """
     Directory of registered Academic Institutions & Industry Leaders.
-    Demonstrates INT253 CO2 and CO5.
     """
     role_filter = request.GET.get('role', '').strip()
     q = request.GET.get('q', '').strip()
@@ -48,7 +47,6 @@ def partner_directory_view(request):
 def partnership_request_create_view(request):
     """
     Initiate a formal collaboration or mentorship request.
-    Demonstrates INT253 CO4 & CO5.
     """
     target_id = request.GET.get('target')
     project_id = request.GET.get('project')

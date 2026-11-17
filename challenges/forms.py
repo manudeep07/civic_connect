@@ -4,12 +4,17 @@ from accounts.validators import validate_image_file
 
 
 class ChallengeForm(forms.ModelForm):
+    latitude = forms.FloatField(required=False, widget=forms.HiddenInput())
+    longitude = forms.FloatField(required=False, widget=forms.HiddenInput())
+
     class Meta:
         model = Challenge
         fields = [
             'title',
             'category',
             'location',
+            'latitude',
+            'longitude',
             'problem_severity',
             'description',
             'expected_impact',
@@ -49,6 +54,23 @@ class ChallengeForm(forms.ModelForm):
         if image and hasattr(image, 'file'):
             validate_image_file(image)
         return image
+
+    def clean(self):
+        cleaned_data = super().clean()
+        lat = cleaned_data.get('latitude')
+        lng = cleaned_data.get('longitude')
+
+        if (lat is not None and lng is None) or (lat is None and lng is not None):
+            raise forms.ValidationError("Both latitude and longitude must be provided together, or both left blank.")
+
+        if lat is not None:
+            if not (-90.0 <= lat <= 90.0):
+                self.add_error('latitude', "Latitude must be between -90 and 90 degrees.")
+        if lng is not None:
+            if not (-180.0 <= lng <= 180.0):
+                self.add_error('longitude', "Longitude must be between -180 and 180 degrees.")
+
+        return cleaned_data
 
 
 class CommentForm(forms.ModelForm):

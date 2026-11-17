@@ -13,7 +13,7 @@ urlpatterns = [
     path('profile/password/', views.change_password_view, name='change_password'),
     path('user/<str:username>/', views.user_detail_view, name='user_detail'),
 
-    # Django built-in password reset workflow (demonstrating INT253 CO2 and CO6)
+    # Django built-in password reset workflow
     path(
         'password-reset/',
         auth_views.PasswordResetView.as_view(
