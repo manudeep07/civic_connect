@@ -6,6 +6,7 @@ app_name = 'challenges'
 urlpatterns = [
     path('', views.challenge_list_view, name='list'),
     path('new/', views.challenge_create_view, name='create'),
+    path('map/', views.challenge_map_view, name='map'),
     path('<int:pk>/', views.challenge_detail_view, name='detail'),
     path('<int:pk>/edit/', views.challenge_edit_view, name='edit'),
     path('<int:pk>/delete/', views.challenge_delete_view, name='delete'),
@@ -13,4 +14,3 @@ urlpatterns = [
     path('<int:pk>/comment/', views.comment_add_view, name='comment_add'),
     path('comment/<int:pk>/delete/', views.comment_delete_view, name='comment_delete'),
 ]
-

@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+
+{% block title %}Analytics Dashboard – CivicConnect{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  .chart-card { border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,.08); background: #fff; padding: 1.5rem; }
+  .stat-badge { font-size: 2rem; font-weight: 800; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+      <h2 class="fw-bold text-dark mb-1"><i class="bi bi-bar-chart-fill text-primary me-2"></i>Platform Analytics</h2>
+      <p class="text-muted mb-0">Live insights into CivicConnect's impact and activity.</p>
+    </div>
+    <a href="{% url 'dashboard:index' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-arrow-left me-1"></i> Back to Dashboard
+    </a>
+  </div>
+
+  <!-- Summary cards -->
+  <div class="row g-3 mb-4">
+    {% for label, key in summary.items %}
+    {% endfor %}
+    <div class="col-6 col-md-3">
+      <div class="chart-card text-center">
+        <div class="stat-badge text-primary">{{ summary.total_challenges }}</div>
+        <div class="text-muted small">Total Challenges</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="chart-card text-center">
+        <div class="stat-badge text-success">{{ summary.total_solutions }}</div>
+        <div class="text-muted small">Total Solutions</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="chart-card text-center">
+        <div class="stat-badge text-info">{{ summary.total_projects }}</div>
+        <div class="text-muted small">Projects Launched</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="chart-card text-center">
+        <div class="stat-badge text-warning">{{ summary.total_users }}</div>
+        <div class="text-muted small">Registered Users</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts row 1 -->
+  <div class="row g-4 mb-4">
+    <div class="col-md-6">
+      <div class="chart-card">
+        <h5 class="fw-bold mb-3">Challenges by Category</h5>
+        <canvas id="categoryChart" height="300"></canvas>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="chart-card">
+        <h5 class="fw-bold mb-3">Challenges by Status</h5>
+        <canvas id="statusChart" height="300"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts row 2 -->
+  <div class="row g-4">
+    <div class="col-md-6">
+      <div class="chart-card">
+        <h5 class="fw-bold mb-3">Top Locations by Challenge Count</h5>
+        <canvas id="locationChart" height="300"></canvas>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="chart-card">
+        <h5 class="fw-bold mb-3">Solutions per Challenge (Top 10)</h5>
+        <canvas id="solutionsChart" height="300"></canvas>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const COLORS = ['#0d6efd','#198754','#fd7e14','#dc3545','#6f42c1','#20c997','#0dcaf0','#ffc107','#6c757d','#e83e8c'];
+
+// --- Category Chart ---
+const catData = {{ by_category_json|safe }};
+new Chart(document.getElementById('categoryChart'), {
+  type: 'bar',
+  data: {
+    labels: catData.map(d => d.category__name || 'Unknown'),
+    datasets: [{ label: 'Challenges', data: catData.map(d => d.count),
+      backgroundColor: COLORS, borderRadius: 6 }]
+  },
+  options: { responsive: true, plugins: { legend: { display: false } } }
+});
+
+// --- Status Chart ---
+const statusData = {{ by_status_json|safe }};
+const statusLabels = { pending: 'Pending', approved: 'Approved', in_progress: 'In Progress', solved: 'Solved', rejected: 'Rejected' };
+new Chart(document.getElementById('statusChart'), {
+  type: 'doughnut',
+  data: {
+    labels: statusData.map(d => statusLabels[d.status] || d.status),
+    datasets: [{ data: statusData.map(d => d.count), backgroundColor: COLORS, borderWidth: 2 }]
+  },
+  options: { responsive: true, plugins: { legend: { position: 'right' } } }
+});
+
+// --- Location Chart ---
+const locData = {{ by_location_json|safe }};
+new Chart(document.getElementById('locationChart'), {
+  type: 'bar',
+  data: {
+    labels: locData.map(d => d.location),
+    datasets: [{ label: 'Challenges', data: locData.map(d => d.count),
+      backgroundColor: '#6f42c1', borderRadius: 6 }]
+  },
+  options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } } }
+});
+
+// --- Solutions per Challenge ---
+const solData = {{ solutions_per_challenge_json|safe }};
+new Chart(document.getElementById('solutionsChart'), {
+  type: 'bar',
+  data: {
+    labels: solData.map(d => d.title.length > 25 ? d.title.slice(0, 25) + '…' : d.title),
+    datasets: [{ label: 'Solutions', data: solData.map(d => d.sol_count),
+      backgroundColor: '#20c997', borderRadius: 6 }]
+  },
+  options: { responsive: true, plugins: { legend: { display: false } } }
+});
+</script>
+{% endblock %}
+

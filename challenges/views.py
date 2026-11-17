@@ -1,13 +1,16 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
 from django.contrib import messages
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q, Count
 from django.http import HttpResponseForbidden
+from django.utils.http import url_has_allowed_host_and_scheme
 
 from .models import Challenge, Category, Vote, Comment
 from .forms import ChallengeForm, CommentForm
 from accounts.utils import log_activity
+from accounts.models import UserScore
 
 
 def challenge_list_view(request):
@@ -137,6 +140,9 @@ def challenge_create_view(request):
 
             challenge.save()
 
+            # Award leaderboard points for challenge creation
+            UserScore.award(request.user, 'challenge_created', reference_id=challenge.pk)
+
             log_activity(
                 user=request.user,
                 activity_type='challenge_created',
@@ -171,7 +177,14 @@ def challenge_edit_view(request, pk):
     if request.method == 'POST':
         form = ChallengeForm(request.POST, request.FILES, instance=challenge)
         if form.is_valid():
-            form.save()
+            edited_challenge = form.save(commit=False)
+            # If a creator (not admin) edits an approved/in-progress challenge, revert status to pending
+            if not request.user.is_admin_user:
+                if challenge.status in ['approved', 'in_progress', 'solved']:
+                    edited_challenge.status = 'pending'
+                    messages.info(request, "Your modifications have been submitted for administrator re-approval.")
+            edited_challenge.save()
+            form.save_m2m()
             log_activity(
                 user=request.user,
                 activity_type='challenge_updated',
@@ -218,61 +231,78 @@ def challenge_delete_view(request, pk):
     return render(request, 'challenges/challenge_confirm_delete.html', {'challenge': challenge})
 
 
+@require_POST
 @login_required
 def vote_toggle_view(request, pk):
     """
     Toggle upvote for a challenge.
     Enforces one vote per user constraint.
+    Voting only permitted if challenge.status is approved or in_progress.
     """
     challenge = get_object_or_404(Challenge, pk=pk)
 
-    if request.method == 'POST':
-        existing_vote = Vote.objects.filter(user=request.user, challenge=challenge).first()
-        if existing_vote:
-            existing_vote.delete()
-            messages.info(request, f"Upvote removed from '{challenge.title}'.")
-        else:
-            Vote.objects.create(user=request.user, challenge=challenge)
-            log_activity(
-                user=request.user,
-                activity_type='voted',
-                title=f"Upvoted challenge: {challenge.title}",
-                link=f"/challenges/{challenge.pk}/"
-            )
-            messages.success(request, f"Thank you for upvoting '{challenge.title}'!")
+    if challenge.status not in ['approved', 'in_progress']:
+        messages.error(request, "Voting is only allowed on approved or in-progress challenges.")
+        return redirect('challenges:detail', pk=pk)
 
-    next_url = request.POST.get('next') or request.META.get('HTTP_REFERER') or f'/challenges/{pk}/'
-    return redirect(next_url)
+    existing_vote = Vote.objects.filter(user=request.user, challenge=challenge).first()
+    if existing_vote:
+        existing_vote.delete()
+        messages.info(request, f"Upvote removed from '{challenge.title}'.")
+    else:
+        Vote.objects.create(user=request.user, challenge=challenge)
+        log_activity(
+            user=request.user,
+            activity_type='voted',
+            title=f"Upvoted challenge: {challenge.title}",
+            link=f"/challenges/{challenge.pk}/"
+        )
+        messages.success(request, f"Thank you for upvoting '{challenge.title}'!")
+
+    next_url = request.POST.get('next') or request.META.get('HTTP_REFERER')
+    if next_url and url_has_allowed_host_and_scheme(
+        url=next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure()
+    ):
+        return redirect(next_url)
+    return redirect('challenges:detail', pk=pk)
 
 
+@require_POST
 @login_required
 def comment_add_view(request, pk):
     """
     Add constructive feedback comment to a challenge.
+    Commenting only permitted if challenge.status is approved or in_progress.
     """
     challenge = get_object_or_404(Challenge, pk=pk)
 
-    if request.method == 'POST':
-        form = CommentForm(request.POST)
-        if form.is_valid():
-            comment = form.save(commit=False)
-            comment.user = request.user
-            comment.challenge = challenge
-            comment.save()
+    if challenge.status not in ['approved', 'in_progress']:
+        messages.error(request, "Comments are only allowed on approved or in-progress challenges.")
+        return redirect('challenges:detail', pk=pk)
 
-            log_activity(
-                user=request.user,
-                activity_type='commented',
-                title=f"Commented on challenge: {challenge.title}",
-                link=f"/challenges/{challenge.pk}/#comments"
-            )
-            messages.success(request, "Your comment has been posted.")
-        else:
-            messages.error(request, "Comment cannot be empty.")
+    form = CommentForm(request.POST)
+    if form.is_valid():
+        comment = form.save(commit=False)
+        comment.user = request.user
+        comment.challenge = challenge
+        comment.save()
+
+        log_activity(
+            user=request.user,
+            activity_type='commented',
+            title=f"Commented on challenge: {challenge.title}",
+            link=f"/challenges/{challenge.pk}/#comments"
+        )
+        messages.success(request, "Your comment has been posted.")
+    else:
+        messages.error(request, "Comment cannot be empty.")
 
     return redirect(f'/challenges/{pk}/#comments')
 
 
+@require_POST
 @login_required
 def comment_delete_view(request, pk):
     """
@@ -285,8 +315,47 @@ def comment_delete_view(request, pk):
         messages.error(request, "You are not authorized to delete this comment.")
         return redirect(f'/challenges/{challenge_pk}/#comments')
 
-    if request.method == 'POST':
-        comment.delete()
-        messages.success(request, "Comment successfully deleted.")
+    comment.delete()
+    messages.success(request, "Comment successfully deleted.")
 
     return redirect(f'/challenges/{challenge_pk}/#comments')
+
+
+import json
+
+def challenge_map_view(request):
+    """
+    Interactive Leaflet map of approved challenges with geocoded lat/lng.
+    Demonstrates Phase 3 feature: geospatial visualisation.
+    """
+    challenges_qs = Challenge.objects.filter(
+        status__in=['approved', 'in_progress', 'solved'],
+        latitude__isnull=False,
+        longitude__isnull=False,
+    ).select_related('category', 'creator').values(
+        'id', 'title', 'location', 'latitude', 'longitude',
+        'problem_severity', 'status', 'category__name'
+    )
+
+    markers = [
+        {
+            'id': ch['id'],
+            'title': ch['title'],
+            'location': ch['location'],
+            'lat': ch['latitude'],
+            'lng': ch['longitude'],
+            'severity': ch['problem_severity'],
+            'status': ch['status'],
+            'category': ch['category__name'],
+        }
+        for ch in challenges_qs
+    ]
+
+    return render(request, 'challenges/challenge_map.html', {
+        'markers_json': json.dumps(markers),
+        'total_mapped': len(markers),
+        'total_unmapped': Challenge.objects.filter(
+            status__in=['approved', 'in_progress', 'solved'],
+            latitude__isnull=True
+        ).count(),
+    })

@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
 from django.contrib import messages
 from django.http import HttpResponseForbidden
 
@@ -7,6 +8,7 @@ from .models import Solution
 from .forms import SolutionForm
 from challenges.models import Challenge
 from accounts.utils import log_activity
+from accounts.models import UserScore
 
 
 @login_required
@@ -17,9 +19,9 @@ def solution_create_view(request, challenge_id):
     """
     challenge = get_object_or_404(Challenge, pk=challenge_id)
 
-    # Only approved challenges can accept solutions
+    # Only approved or in-progress challenges can accept solutions
     if challenge.status not in ['approved', 'in_progress']:
-        messages.warning(request, "Solutions can only be submitted for approved challenges.")
+        messages.error(request, "Solutions can only be submitted for approved or in-progress challenges.")
         return redirect('challenges:detail', pk=challenge.pk)
 
     if request.method == 'POST':
@@ -137,6 +139,7 @@ def solution_delete_view(request, pk):
     return render(request, 'solutions/solution_confirm_delete.html', {'solution': solution})
 
 
+@require_POST
 @login_required
 def solution_accept_toggle_view(request, pk):
     """
@@ -150,27 +153,29 @@ def solution_accept_toggle_view(request, pk):
         messages.error(request, "Only the challenge owner or an administrator can accept solutions.")
         return redirect('solutions:detail', pk=solution.pk)
 
-    if request.method == 'POST':
-        if solution.is_accepted:
-            solution.is_accepted = False
-            solution.save()
-            messages.info(request, f"Solution '{solution.title}' is no longer marked as accepted.")
-        else:
-            # Set this solution to accepted
-            solution.is_accepted = True
-            solution.save()
+    if solution.is_accepted:
+        solution.is_accepted = False
+        solution.save()
+        messages.info(request, f"Solution '{solution.title}' is no longer marked as accepted.")
+    else:
+        # Set this solution to accepted
+        solution.is_accepted = True
+        solution.save()
 
-            # Optionally update challenge status to in_progress if still approved
-            if challenge.status == 'approved':
-                challenge.status = 'in_progress'
-                challenge.save()
+        # Award leaderboard points to solution creator
+        UserScore.award(solution.creator, 'solution_accepted', reference_id=solution.pk)
 
-            log_activity(
-                user=solution.creator,
-                activity_type='solution_accepted',
-                title=f"Your solution '{solution.title}' was accepted by {challenge.creator.display_name}!",
-                link=f"/solutions/{solution.pk}/"
-            )
-            messages.success(request, f"Solution '{solution.title}' is now accepted! You can now launch a collaborative project.")
+        # Optionally update challenge status to in_progress if still approved
+        if challenge.status == 'approved':
+            challenge.status = 'in_progress'
+            challenge.save()
+
+        log_activity(
+            user=solution.creator,
+            activity_type='solution_accepted',
+            title=f"Your solution '{solution.title}' was accepted by {challenge.creator.display_name}!",
+            link=f"/solutions/{solution.pk}/"
+        )
+        messages.success(request, f"Solution '{solution.title}' is now accepted! You can now launch a collaborative project.")
 
     return redirect('solutions:detail', pk=solution.pk)

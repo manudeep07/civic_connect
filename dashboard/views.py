@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.db.models import Count, Q
@@ -174,9 +175,10 @@ def render_admin_dashboard(request):
 
 
 @login_required
+@require_POST
 def admin_approve_challenge(request, pk):
     """
-    Quick 1-click approval for administrators from the dashboard.
+    POST-only: Approve a challenge from the admin dashboard.
     """
     if not request.user.is_admin_user:
         messages.error(request, "Permission denied.")
@@ -198,9 +200,10 @@ def admin_approve_challenge(request, pk):
 
 
 @login_required
+@require_POST
 def admin_reject_challenge(request, pk):
     """
-    Quick 1-click rejection for administrators from the dashboard.
+    POST-only: Reject a challenge from the admin dashboard.
     """
     if not request.user.is_admin_user:
         messages.error(request, "Permission denied.")
@@ -212,3 +215,90 @@ def admin_reject_challenge(request, pk):
 
     messages.warning(request, f"Challenge '{challenge.title}' has been marked as rejected.")
     return redirect('dashboard:index')
+
+
+import json
+from accounts.models import UserScore
+from django.db.models import Sum
+
+
+@login_required
+def analytics_view(request):
+    """
+    Analytics dashboard with Chart.js charts.
+    Accessible to admins, verified universities, and verified industry.
+    """
+    user = request.user
+    if not (user.is_admin_user or (user.role in ['university', 'industry'] and user.is_verified)):
+        messages.error(request, "Analytics is available to administrators and verified partners.")
+        return redirect('dashboard:index')
+
+    # Challenges by category
+    by_category = list(
+        Challenge.objects.values('category__name')
+        .annotate(count=Count('id'))
+        .order_by('-count')[:10]
+    )
+
+    # Challenges by status
+    by_status = list(
+        Challenge.objects.values('status')
+        .annotate(count=Count('id'))
+        .order_by('-count')
+    )
+
+    # Challenges by location (top 10)
+    by_location = list(
+        Challenge.objects.values('location')
+        .annotate(count=Count('id'))
+        .order_by('-count')[:10]
+    )
+
+    # Solutions per challenge (top 10)
+    from solutions.models import Solution
+    solutions_per_challenge = list(
+        Challenge.objects.filter(status__in=['approved', 'in_progress', 'solved'])
+        .annotate(sol_count=Count('solutions'))
+        .values('title', 'sol_count')
+        .order_by('-sol_count')[:10]
+    )
+
+    summary = {
+        'total_challenges': Challenge.objects.count(),
+        'total_solutions': Solution.objects.count(),
+        'total_projects': Project.objects.count(),
+        'total_users': User.objects.count(),
+        'approved': Challenge.objects.filter(status='approved').count(),
+        'in_progress': Challenge.objects.filter(status='in_progress').count(),
+        'solved': Challenge.objects.filter(status='solved').count(),
+    }
+
+    return render(request, 'dashboard/analytics.html', {
+        'by_category_json': json.dumps(by_category),
+        'by_status_json': json.dumps(by_status),
+        'by_location_json': json.dumps(by_location),
+        'solutions_per_challenge_json': json.dumps(solutions_per_challenge),
+        'summary': summary,
+    })
+
+
+@login_required
+def leaderboard_view(request):
+    """
+    Leaderboard of top contributors by points.
+    Points: challenge_created=10, solution_accepted=25, project_completed=50.
+    """
+    top_users = (
+        User.objects
+        .filter(score_events__isnull=False)
+        .annotate(total_points=Sum('score_events__points'))
+        .order_by('-total_points')[:20]
+    )
+
+    # Also get current user's rank
+    user_points = UserScore.objects.filter(user=request.user).aggregate(total=Sum('points'))['total'] or 0
+
+    return render(request, 'dashboard/leaderboard.html', {
+        'top_users': top_users,
+        'user_points': user_points,
+    })

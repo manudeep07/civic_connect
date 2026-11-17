@@ -65,6 +65,14 @@ def partnership_request_create_view(request):
         challenge = get_object_or_404(Challenge, pk=challenge_id)
         initial_data['challenge'] = challenge
 
+    # Unverified university/industry users cannot send partnership requests
+    if request.user.role in ['university', 'industry'] and not request.user.is_verified:
+        messages.error(
+            request,
+            "Your organization must be verified by an administrator before sending partnership requests."
+        )
+        return redirect('partnerships:directory')
+
     if request.method == 'POST':
         form = PartnershipRequestForm(request.POST, user=request.user)
         if form.is_valid():

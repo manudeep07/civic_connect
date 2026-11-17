@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+
+{% block title %}Challenge Map – CivicConnect{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+  #challenge-map { height: 70vh; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,.12); }
+  .legend { background: white; padding: 12px 16px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,.15); line-height: 1.8; }
+  .legend-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 6px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 px-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+    <div>
+      <h2 class="fw-bold text-dark mb-1"><i class="bi bi-geo-alt-fill text-danger me-2"></i>Challenge Map</h2>
+      <p class="text-muted mb-0">Geographical view of societal challenges across communities.</p>
+    </div>
+    <div class="d-flex gap-2">
+      <span class="badge bg-success py-2 px-3">{{ total_mapped }} Mapped</span>
+      {% if total_unmapped %}
+      <span class="badge bg-warning text-dark py-2 px-3">{{ total_unmapped }} Without Coordinates</span>
+      {% endif %}
+      <a href="{% url 'challenges:list' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-list-ul me-1"></i> List View
+      </a>
+    </div>
+  </div>
+
+  {% if total_mapped == 0 %}
+  <div class="alert alert-info">
+    <i class="bi bi-info-circle me-2"></i>
+    No challenges have been geocoded yet. Location coordinates are populated automatically when challenges are saved.
+  </div>
+  {% endif %}
+
+  <div id="challenge-map"></div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  const markers = {{ markers_json|safe }};
+
+  const map = L.map('challenge-map').setView([20, 78], 4);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxZoom: 18
+  }).addTo(map);
+
+  const severityColors = {
+    'critical': '#dc3545',
+    'high':     '#fd7e14',
+    'medium':   '#0d6efd',
+    'low':      '#198754'
+  };
+
+  function makeIcon(severity) {
+    const color = severityColors[severity] || '#6c757d';
+    return L.divIcon({
+      className: '',
+      html: `<div style="background:${color};width:14px;height:14px;border-radius:50%;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,.4);"></div>`,
+      iconSize: [14, 14],
+      iconAnchor: [7, 7],
+      popupAnchor: [0, -10]
+    });
+  }
+
+  markers.forEach(function(m) {
+    L.marker([m.lat, m.lng], { icon: makeIcon(m.severity) })
+      .addTo(map)
+      .bindPopup(`
+        <strong>${m.title}</strong><br>
+        <small class="text-muted"><i class="bi bi-geo-alt"></i> ${m.location}</small><br>
+        <span class="badge" style="background:${severityColors[m.severity] || '#6c757d'};color:#fff;">${m.severity}</span>
+        <span class="ms-1 badge bg-secondary">${m.category}</span><br>
+        <a href="/challenges/${m.id}/" class="btn btn-sm btn-primary mt-2 d-block">View Challenge</a>
+      `);
+  });
+
+  if (markers.length > 0) {
+    const group = L.featureGroup(markers.map(m => L.marker([m.lat, m.lng])));
+    map.fitBounds(group.getBounds().pad(0.1));
+  }
+
+  // Legend
+  const legend = L.control({ position: 'bottomright' });
+  legend.onAdd = function() {
+    const div = L.DomUtil.create('div', 'legend');
+    div.innerHTML = '<strong>Severity</strong><br>';
+    [['critical','#dc3545'],['high','#fd7e14'],['medium','#0d6efd'],['low','#198754']].forEach(([label, color]) => {
+      div.innerHTML += `<span class="legend-dot" style="background:${color}"></span>${label}<br>`;
+    });
+    return div;
+  };
+  legend.addTo(map);
+</script>
+{% endblock %}
+

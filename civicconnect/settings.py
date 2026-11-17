@@ -1,17 +1,29 @@
 import os
+import sys
 from pathlib import Path
 from django.contrib.messages import constants as messages
+
+try:
+    from decouple import config, Csv
+    _USE_DECOUPLE = True
+except ImportError:
+    _USE_DECOUPLE = False
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-u^w!6s9+4p)%(uw$57^_8&40b^ks&n*0fe=-@0i^1zde3_s==0'
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-ALLOWED_HOSTS = ['*']
+# ---------------------------------------------------------------------------
+# Security-sensitive settings — read from environment / .env
+# ---------------------------------------------------------------------------
+if _USE_DECOUPLE:
+    SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-me-in-production')
+    DEBUG = config('DEBUG', default=True, cast=bool)
+    ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='127.0.0.1,localhost', cast=Csv())
+else:
+    SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-change-me-in-production')
+    DEBUG = os.environ.get('DEBUG', 'True').lower() not in ('false', '0', 'no')
+    _hosts = os.environ.get('ALLOWED_HOSTS', '127.0.0.1,localhost')
+    ALLOWED_HOSTS = [h.strip() for h in _hosts.split(',') if h.strip()]
 
 # Application definition
 INSTALLED_APPS = [
@@ -32,6 +44,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -61,26 +74,46 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'civicconnect.wsgi.application'
 
-# Database
-# https://docs.djangoproject.com/en/6.1/ref/settings/#databases
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# ---------------------------------------------------------------------------
+# Database — supports DATABASE_URL for PostgreSQL on Render/Heroku
+# ---------------------------------------------------------------------------
+_database_url = os.environ.get('DATABASE_URL', '')
+if _database_url:
+    try:
+        import dj_database_url
+        DATABASES = {'default': dj_database_url.config(default=_database_url, conn_max_age=600)}
+    except ImportError:
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': BASE_DIR / 'db.sqlite3',
+            }
+        }
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
     }
-}
 
 # Custom User Model
 AUTH_USER_MODEL = 'accounts.CustomUser'
 
-# Password validation
+# Fast hasher for testing to avoid 720k PBKDF2 iterations per test
+if 'test' in sys.argv:
+    PASSWORD_HASHERS = [
+        'django.contrib.auth.hashers.MD5PasswordHasher',
+    ]
+
+# Password validation — minimum 8 characters
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
     },
     {
         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-        'OPTIONS': {'min_length': 6},
+        'OPTIONS': {'min_length': 8},
     },
     {
         'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
@@ -100,6 +133,9 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# WhiteNoise static file compression
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Media files (user uploads)
 MEDIA_URL = '/media/'
@@ -123,3 +159,15 @@ MESSAGE_TAGS = {
 }
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# ---------------------------------------------------------------------------
+# Production security settings — only active when DEBUG=False
+# ---------------------------------------------------------------------------
+if not DEBUG:
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True

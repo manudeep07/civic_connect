@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
 from django.contrib import messages
 from django.db.models import Q
 from django.core.paginator import Paginator
@@ -9,6 +10,7 @@ from .forms import ProjectForm, ProjectMembershipAddForm
 from solutions.models import Solution
 from challenges.models import Challenge
 from accounts.utils import log_activity
+from accounts.models import UserScore
 
 
 def project_list_view(request):
@@ -78,9 +80,30 @@ def project_create_from_solution_view(request, solution_id):
     """
     Launch a collaborative project from an accepted solution.
     Demonstrates INT253 CO4 & CO5.
+    Requires:
+    - Challenge status is approved or in_progress
+    - Solution is accepted
+    - User is the solution creator or an admin
+    - Organizations (university/industry) must be verified
     """
     solution = get_object_or_404(Solution, pk=solution_id)
     challenge = solution.challenge
+
+    if challenge.status not in ['approved', 'in_progress']:
+        messages.error(request, "Projects can only be created for approved or in-progress challenges.")
+        return redirect('challenges:detail', pk=challenge.pk)
+
+    if not solution.is_accepted:
+        messages.error(request, "A collaborative project can only be launched from an accepted solution.")
+        return redirect('solutions:detail', pk=solution.pk)
+
+    if not (request.user == solution.creator or request.user.is_admin_user):
+        messages.error(request, "Only the solution creator or an administrator can launch a project from this solution.")
+        return redirect('solutions:detail', pk=solution.pk)
+
+    if request.user.role in ['university', 'industry'] and not request.user.is_verified:
+        messages.error(request, "Your organization must be verified by an administrator before leading projects.")
+        return redirect('solutions:detail', pk=solution.pk)
 
     if request.method == 'POST':
         form = ProjectForm(request.POST)
@@ -137,6 +160,14 @@ def project_create_from_challenge_view(request, challenge_id):
     Initiate a collaborative project directly from an approved challenge.
     """
     challenge = get_object_or_404(Challenge, pk=challenge_id)
+
+    if challenge.status not in ['approved', 'in_progress']:
+        messages.error(request, "Projects can only be created for approved or in-progress challenges.")
+        return redirect('challenges:detail', pk=challenge.pk)
+
+    if request.user.role in ['university', 'industry'] and not request.user.is_verified:
+        messages.error(request, "Your organization must be verified by an administrator before leading projects.")
+        return redirect('challenges:detail', pk=challenge.pk)
 
     if request.method == 'POST':
         form = ProjectForm(request.POST)
@@ -201,6 +232,8 @@ def project_edit_view(request, pk):
             if p.status == 'completed' and p.progress_percentage == 100:
                 p.challenge.status = 'solved'
                 p.challenge.save()
+                # Award leaderboard points to project lead
+                UserScore.award(p.lead, 'project_completed', reference_id=p.pk)
 
             log_activity(
                 user=request.user,
@@ -224,6 +257,7 @@ def project_edit_view(request, pk):
     })
 
 
+@require_POST
 @login_required
 def project_member_add_view(request, pk):
     """
@@ -235,27 +269,27 @@ def project_member_add_view(request, pk):
         messages.error(request, "Only project leads can add team members.")
         return redirect('collaborations:detail', pk=project.pk)
 
-    if request.method == 'POST':
-        form = ProjectMembershipAddForm(request.POST, project=project)
-        if form.is_valid():
-            membership = form.save(commit=False)
-            membership.project = project
-            membership.save()
+    form = ProjectMembershipAddForm(request.POST, project=project)
+    if form.is_valid():
+        membership = form.save(commit=False)
+        membership.project = project
+        membership.save()
 
-            log_activity(
-                user=membership.user,
-                activity_type='added_to_project',
-                title=f"Added to project team: {project.title} as {membership.role}",
-                link=f"/collaborations/{project.pk}/"
-            )
+        log_activity(
+            user=membership.user,
+            activity_type='added_to_project',
+            title=f"Added to project team: {project.title} as {membership.role}",
+            link=f"/collaborations/{project.pk}/"
+        )
 
-            messages.success(request, f"Added {membership.user.display_name} as {membership.role} to the project team.")
-        else:
-            messages.error(request, "Could not add user. Please select a valid user.")
+        messages.success(request, f"Added {membership.user.display_name} as {membership.role} to the project team.")
+    else:
+        messages.error(request, "Could not add user. Please select a valid user.")
 
     return redirect('collaborations:detail', pk=project.pk)
 
 
+@require_POST
 @login_required
 def project_member_remove_view(request, pk, membership_id):
     """
@@ -268,14 +302,14 @@ def project_member_remove_view(request, pk, membership_id):
         messages.error(request, "You do not have permission to remove this member.")
         return redirect('collaborations:detail', pk=project.pk)
 
-    if request.method == 'POST':
-        username = membership.user.username
-        membership.delete()
-        messages.info(request, f"Member @{username} has been removed from this project.")
+    username = membership.user.username
+    membership.delete()
+    messages.info(request, f"Member @{username} has been removed from this project.")
 
     return redirect('collaborations:detail', pk=project.pk)
 
 
+@require_POST
 @login_required
 def project_quick_join_view(request, pk):
     """
@@ -302,4 +336,42 @@ def project_quick_join_view(request, pk):
     )
 
     messages.success(request, f"You have joined '{project.title}' as a {role_title}! Welcome to the team.")
+    return redirect('collaborations:detail', pk=project.pk)
+
+
+@require_POST
+@login_required
+def project_sponsor_pilot_view(request, pk):
+    """
+    Industry partners can sponsor a project as a Pilot.
+    Sets status to 'pilot' and records the sponsor.
+    """
+    project = get_object_or_404(Project, pk=pk)
+
+    if not request.user.is_industry:
+        messages.error(request, "Only verified industry partners can sponsor a pilot.")
+        return redirect('collaborations:detail', pk=project.pk)
+
+    if not request.user.is_verified:
+        messages.error(request, "Your organization must be verified before sponsoring a pilot.")
+        return redirect('collaborations:detail', pk=project.pk)
+
+    project.status = 'pilot'
+    project.pilot_sponsor = request.user
+    project.save()
+
+    log_activity(
+        user=request.user,
+        activity_type='pilot_sponsored',
+        title=f"Sponsored '{project.title}' as a Pilot",
+        link=f"/collaborations/{project.pk}/"
+    )
+    log_activity(
+        user=project.lead,
+        activity_type='pilot_received',
+        title=f"Your project '{project.title}' has been sponsored as a Pilot by {request.user.display_name}!",
+        link=f"/collaborations/{project.pk}/"
+    )
+
+    messages.success(request, f"You are now sponsoring '{project.title}' as an industry pilot!")
     return redirect('collaborations:detail', pk=project.pk)

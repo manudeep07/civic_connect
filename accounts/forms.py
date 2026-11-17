@@ -2,8 +2,15 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
+from .validators import validate_image_file
 
 User = get_user_model()
+
+PUBLIC_ROLE_CHOICES = (
+    ('student', 'Citizen / Student'),
+    ('university', 'University'),
+    ('industry', 'Industry'),
+)
 
 
 class UserRegistrationForm(forms.ModelForm):
@@ -21,9 +28,14 @@ class UserRegistrationForm(forms.ModelForm):
         required=True,
         widget=forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'name@example.com'})
     )
+    role = forms.ChoiceField(
+        choices=PUBLIC_ROLE_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        required=True
+    )
     password = forms.CharField(
         widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Create strong password'}),
-        help_text="At least 6 characters"
+        help_text="At least 8 characters"
     )
     confirm_password = forms.CharField(
         widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Confirm password'})
@@ -42,10 +54,15 @@ class UserRegistrationForm(forms.ModelForm):
         ]
         widgets = {
             'username': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Choose username'}),
-            'role': forms.Select(attrs={'class': 'form-select'}),
             'institution_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'University, College, or Company name'}),
             'location': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Chicago, IL or Mumbai, India'}),
         }
+
+    def clean_role(self):
+        role = self.cleaned_data.get('role')
+        if role not in ['student', 'university', 'industry']:
+            raise ValidationError("Administrator accounts cannot be registered publicly.")
+        return role
 
     def clean_email(self):
         email = self.cleaned_data.get('email')
@@ -110,4 +127,10 @@ class UserProfileForm(forms.ModelForm):
             'bio': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
             'avatar': forms.FileInput(attrs={'class': 'form-control'}),
         }
+
+    def clean_avatar(self):
+        avatar = self.cleaned_data.get('avatar')
+        if avatar and hasattr(avatar, 'file'):
+            validate_image_file(avatar)
+        return avatar
 

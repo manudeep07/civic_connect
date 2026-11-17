@@ -1,5 +1,6 @@
 from django import forms
 from .models import Challenge, Comment
+from accounts.validators import validate_image_file
 
 
 class ChallengeForm(forms.ModelForm):
@@ -42,6 +43,12 @@ class ChallengeForm(forms.ModelForm):
             }),
             'image': forms.FileInput(attrs={'class': 'form-control'}),
         }
+
+    def clean_image(self):
+        image = self.cleaned_data.get('image')
+        if image and hasattr(image, 'file'):
+            validate_image_file(image)
+        return image
 
 
 class CommentForm(forms.ModelForm):

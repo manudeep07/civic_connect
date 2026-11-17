@@ -12,5 +12,5 @@ urlpatterns = [
     path('<int:pk>/members/add/', views.project_member_add_view, name='member_add'),
     path('<int:pk>/members/<int:membership_id>/remove/', views.project_member_remove_view, name='member_remove'),
     path('<int:pk>/join/', views.project_quick_join_view, name='join'),
+    path('<int:pk>/sponsor-pilot/', views.project_sponsor_pilot_view, name='sponsor_pilot'),
 ]
-

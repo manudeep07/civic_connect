@@ -5,19 +5,30 @@ from .models import CustomUser, Activity
 
 @admin.register(CustomUser)
 class CustomUserAdmin(UserAdmin):
-    list_display = ('username', 'email', 'first_name', 'last_name', 'role', 'institution_name', 'location', 'is_staff')
-    list_filter = ('role', 'is_staff', 'is_superuser', 'is_active', 'date_joined')
+    list_display = ('username', 'email', 'first_name', 'last_name', 'role', 'is_verified', 'institution_name', 'location', 'is_staff')
+    list_filter = ('role', 'is_verified', 'is_staff', 'is_superuser', 'is_active', 'date_joined')
     search_fields = ('username', 'first_name', 'last_name', 'email', 'institution_name', 'location')
     ordering = ('-date_joined',)
+    actions = ['verify_organizations', 'unverify_organizations']
+
+    @admin.action(description="Verify selected organizations")
+    def verify_organizations(self, request, queryset):
+        count = queryset.update(is_verified=True)
+        self.message_user(request, f"{count} user(s) marked as verified.")
+
+    @admin.action(description="Revoke verification for selected users")
+    def unverify_organizations(self, request, queryset):
+        count = queryset.update(is_verified=False)
+        self.message_user(request, f"{count} user(s) marked as unverified.")
 
     fieldsets = UserAdmin.fieldsets + (
         ('CivicConnect Role & Profile', {
-            'fields': ('role', 'institution_name', 'location', 'phone', 'website', 'bio', 'avatar')
+            'fields': ('role', 'is_verified', 'institution_name', 'location', 'phone', 'website', 'bio', 'avatar')
         }),
     )
     add_fieldsets = UserAdmin.add_fieldsets + (
         ('CivicConnect Details', {
-            'fields': ('first_name', 'last_name', 'email', 'role', 'institution_name', 'location')
+            'fields': ('first_name', 'last_name', 'email', 'role', 'is_verified', 'institution_name', 'location')
         }),
     )
 

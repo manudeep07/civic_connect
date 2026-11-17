@@ -38,6 +38,15 @@
             </button>
           </form>
         {% endif %}
+
+        {% if user.is_authenticated and user.is_industry and user.is_verified and project.status == 'active' and not project.pilot_sponsor %}
+          <form method="post" action="{% url 'collaborations:sponsor_pilot' project.pk %}" onsubmit="return confirm('Sponsor this project as an industry pilot?');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-warning btn-sm">
+              <i class="bi bi-award-fill me-1"></i> Sponsor as Pilot
+            </button>
+          </form>
+        {% endif %}
       </div>
     </div>
 
@@ -45,6 +54,11 @@
 
     <div class="d-flex flex-wrap align-items-center gap-3 text-muted small mb-4">
       <span><i class="bi bi-person-badge text-primary me-1"></i> Project Lead: <strong>{{ project.lead.display_name }}</strong></span>
+      {% if project.pilot_sponsor %}
+        <span class="badge bg-warning text-dark">
+          <i class="bi bi-award-fill me-1"></i> Pilot Sponsor: {{ project.pilot_sponsor.display_name }}
+        </span>
+      {% endif %}
       {% if project.start_date %}
         <span><i class="bi bi-calendar-event text-success me-1"></i> Started: {{ project.start_date|date:"M d, Y" }}</span>
       {% endif %}

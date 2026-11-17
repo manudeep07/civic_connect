@@ -7,6 +7,7 @@ class Project(models.Model):
     STATUS_CHOICES = (
         ('planning', 'Planning & Scoping'),
         ('active', 'Active & In Progress'),
+        ('pilot', 'Pilot / Field Trial'),
         ('on_hold', 'On Hold'),
         ('completed', 'Successfully Completed'),
     )
@@ -29,6 +30,14 @@ class Project(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='led_projects'
+    )
+    pilot_sponsor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='sponsored_pilots',
+        help_text="Industry partner who sponsored this project as a pilot"
     )
     status = models.CharField(
         max_length=20,
@@ -61,6 +70,7 @@ class Project(models.Model):
         classes = {
             'planning': 'bg-secondary',
             'active': 'bg-primary',
+            'pilot': 'bg-info text-dark',
             'on_hold': 'bg-warning text-dark',
             'completed': 'bg-success',
         }

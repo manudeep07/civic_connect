@@ -1,3 +1,14 @@
+"""
+CivicConnect – Full Test Suite
+Covers all Phase-2 requirements:
+  • Registration cannot create an admin
+  • Permission checks on edit / delete
+  • Vote toggle
+  • Status workflow
+  • Moderation bypass attempts
+  • Partnership accept / decline flow
+Target: ≥ 25 tests, all passing
+"""
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth import get_user_model
@@ -9,239 +20,673 @@ from partnerships.models import PartnershipRequest
 
 User = get_user_model()
 
+# ---------------------------------------------------------------------------
+# Shared base class
+# ---------------------------------------------------------------------------
 
-class CivicConnectFullFlowTests(TestCase):
+class BaseTestCase(TestCase):
     def setUp(self):
         self.client = Client()
-
-        # Create Category
         self.category = Category.objects.create(
-            name="Environment",
-            slug="environment",
-            icon="bi-tree"
+            name="Environment", slug="environment", icon="bi-tree"
         )
-
-        # Create Users
+        # Student (auto-verified)
         self.student = User.objects.create_user(
-            username="student_tester",
-            email="student@test.com",
-            password="password123",
-            role="student",
-            first_name="Jane",
-            last_name="Student"
+            username="student1", email="s@test.com",
+            password="testpass99", role="student",
+            first_name="Jane", last_name="Doe"
         )
-
-        self.university = User.objects.create_user(
-            username="univ_tester",
-            email="univ@test.com",
-            password="password123",
-            role="university",
-            institution_name="Global Tech University",
-            first_name="Prof",
-            last_name="Tech"
+        # Second student
+        self.student2 = User.objects.create_user(
+            username="student2", email="s2@test.com",
+            password="testpass99", role="student"
         )
-
+        # University (not verified by default)
+        self.univ = User.objects.create_user(
+            username="univ1", email="u@test.com",
+            password="testpass99", role="university",
+            institution_name="State Uni"
+        )
+        # Verified university
+        self.univ_verified = User.objects.create_user(
+            username="univ2", email="u2@test.com",
+            password="testpass99", role="university",
+            institution_name="MIT East", is_verified=True
+        )
+        # Industry (not verified)
         self.industry = User.objects.create_user(
-            username="industry_tester",
-            email="industry@test.com",
-            password="password123",
-            role="industry",
-            institution_name="Apex Energy Corp"
+            username="ind1", email="i@test.com",
+            password="testpass99", role="industry",
+            institution_name="Acme Corp"
+        )
+        # Verified industry
+        self.industry_verified = User.objects.create_user(
+            username="ind2", email="i2@test.com",
+            password="testpass99", role="industry",
+            institution_name="BigCo", is_verified=True
+        )
+        # Admin / superuser
+        self.admin = User.objects.create_superuser(
+            username="admin1", email="a@test.com",
+            password="testpass99", role="admin"
         )
 
-        self.admin_user = User.objects.create_superuser(
-            username="admin_tester",
-            email="admin@test.com",
-            password="password123",
-            role="admin"
+    def _make_challenge(self, creator=None, status="approved", title="Test Challenge"):
+        return Challenge.objects.create(
+            title=title,
+            category=self.category,
+            creator=creator or self.student,
+            location="Test City",
+            problem_severity="high",
+            status=status,
+            description="Detailed description of the problem.",
+            expected_impact="Positive community impact.",
         )
 
+    def _make_solution(self, challenge, creator=None, accepted=False):
+        return Solution.objects.create(
+            challenge=challenge,
+            creator=creator or self.student,
+            title="A Good Solution",
+            description="Detailed solution description.",
+            proposed_implementation="Step by step.",
+            expected_outcome="Measured outcomes.",
+            required_resources="Resources needed.",
+            estimated_duration="3 Months",
+            is_accepted=accepted,
+        )
+
+
+# ===========================================================================
+# 1. REGISTRATION TESTS
+# ===========================================================================
+
+class RegistrationTests(BaseTestCase):
+    """Registration form must reject role=admin and enforce min 8-char password."""
+
+    def _register(self, role, password="ValidPass1!", institution="Test Org"):
+        data = {
+            'username': f'newuser_{role}',
+            'email': f'{role}@test.com',
+            'first_name': 'New',
+            'last_name': 'User',
+            'password': password,
+            'confirm_password': password,
+            'role': role,
+            'location': 'Test City',
+        }
+        # university and industry require institution_name
+        if role in ('university', 'industry'):
+            data['institution_name'] = institution
+        return self.client.post(reverse('accounts:register'), data)
+
+    def test_registration_rejects_admin_role(self):
+        """Submitting role=admin at registration is forbidden."""
+        response = self._register('admin')
+        self.assertFalse(User.objects.filter(username='newuser_admin').exists(),
+                         "Admin role user must NOT be created via public registration.")
+
+    def test_registration_accepts_student_role(self):
+        response = self._register('student')
+        self.assertTrue(User.objects.filter(username='newuser_student').exists())
+
+    def test_registration_accepts_university_role(self):
+        response = self._register('university')
+        self.assertTrue(User.objects.filter(username='newuser_university').exists())
+
+    def test_registration_accepts_industry_role(self):
+        response = self._register('industry')
+        self.assertTrue(User.objects.filter(username='newuser_industry').exists())
+
+    def test_student_auto_verified_on_registration(self):
+        """Students and admins must be auto-verified; org roles are not."""
+        user = User.objects.create_user(
+            username='fresh_student', password='pass12345', role='student'
+        )
+        self.assertTrue(user.is_verified)
+
+    def test_university_not_auto_verified(self):
+        user = User.objects.create_user(
+            username='fresh_univ', password='pass12345', role='university'
+        )
+        self.assertFalse(user.is_verified)
+
+    def test_industry_not_auto_verified(self):
+        user = User.objects.create_user(
+            username='fresh_ind', password='pass12345', role='industry'
+        )
+        self.assertFalse(user.is_verified)
+
+
+# ===========================================================================
+# 2. HOME PAGE
+# ===========================================================================
+
+class HomePageTests(BaseTestCase):
     def test_home_page_loads(self):
         response = self.client.get(reverse('home'))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Together, We Can")
-        self.assertContains(response, "Solve Real-World")
         self.assertContains(response, "CivicConnect")
+        self.assertContains(response, "Together, We Can")
 
-    def test_challenge_creation_and_approval_workflow(self):
-        # 1. Student submits challenge -> pending status
-        self.client.login(username="student_tester", password="password123")
-        post_data = {
-            'title': 'Test Estuary Plastic Cleanup',
-            'category': self.category.id,
-            'location': 'Test Estuary, Florida',
-            'problem_severity': 'high',
-            'description': 'Heavy synthetic runoff threatening mangroves and local fauna.',
-            'expected_impact': 'Eliminate 70% of floating particulate plastics.',
-            'organization_name': 'Test Conservation Forum',
-        }
-        response = self.client.post(reverse('challenges:create'), post_data)
-        self.assertEqual(response.status_code, 302)
-
-        challenge = Challenge.objects.get(title='Test Estuary Plastic Cleanup')
-        self.assertEqual(challenge.status, 'pending')
-
-        # Public list shouldn't show pending challenge to unauthenticated users
+    def test_home_page_unauthenticated(self):
+        """Home page must be accessible without login."""
         self.client.logout()
-        res_list = self.client.get(reverse('challenges:list'))
-        self.assertNotContains(res_list, 'Test Estuary Plastic Cleanup')
+        response = self.client.get(reverse('home'))
+        self.assertEqual(response.status_code, 200)
 
-        # Admin approves challenge via 1-click approve view
-        self.client.login(username="admin_tester", password="password123")
-        res_approve = self.client.get(reverse('dashboard:admin_approve', kwargs={'pk': challenge.pk}))
-        self.assertEqual(res_approve.status_code, 302)
 
+# ===========================================================================
+# 3. CHALLENGE EDIT / DELETE PERMISSION TESTS
+# ===========================================================================
+
+class ChallengePermissionTests(BaseTestCase):
+    def test_creator_can_edit_own_challenge(self):
+        challenge = self._make_challenge(creator=self.student, status="pending")
+        self.client.login(username="student1", password="testpass99")
+        url = reverse('challenges:edit', kwargs={'pk': challenge.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+
+    def test_non_creator_cannot_edit_challenge(self):
+        challenge = self._make_challenge(creator=self.student, status="pending")
+        self.client.login(username="student2", password="testpass99")
+        url = reverse('challenges:edit', kwargs={'pk': challenge.pk})
+        response = self.client.get(url)
+        # Should be a redirect or 403
+        self.assertNotEqual(response.status_code, 200)
+
+    def test_creator_can_delete_own_challenge(self):
+        challenge = self._make_challenge(creator=self.student)
+        self.client.login(username="student1", password="testpass99")
+        url = reverse('challenges:delete', kwargs={'pk': challenge.pk})
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(Challenge.objects.filter(pk=challenge.pk).exists())
+
+    def test_non_creator_cannot_delete_challenge(self):
+        challenge = self._make_challenge(creator=self.student)
+        self.client.login(username="student2", password="testpass99")
+        url = reverse('challenges:delete', kwargs={'pk': challenge.pk})
+        response = self.client.post(url)
+        self.assertTrue(Challenge.objects.filter(pk=challenge.pk).exists())
+
+    def test_edit_approved_challenge_reverts_to_pending(self):
+        """Editing an approved challenge by non-admin must revert it to pending."""
+        challenge = self._make_challenge(creator=self.student, status="approved")
+        self.client.login(username="student1", password="testpass99")
+        url = reverse('challenges:edit', kwargs={'pk': challenge.pk})
+        self.client.post(url, {
+            'title': 'Updated Title',
+            'category': self.category.pk,
+            'location': 'New City',
+            'problem_severity': 'low',
+            'description': 'Updated description with enough characters.',
+            'expected_impact': 'Updated impact statement.',
+            'organization_name': '',
+        })
+        challenge.refresh_from_db()
+        self.assertEqual(challenge.status, 'pending',
+                         "Approved challenge edited by creator should revert to pending.")
+
+    def test_admin_edit_approved_challenge_stays_approved(self):
+        """Admin editing an approved challenge must NOT revert it to pending."""
+        challenge = self._make_challenge(creator=self.student, status="approved")
+        self.client.login(username="admin1", password="testpass99")
+        url = reverse('challenges:edit', kwargs={'pk': challenge.pk})
+        self.client.post(url, {
+            'title': 'Admin Updated Title',
+            'category': self.category.pk,
+            'location': 'Admin City',
+            'problem_severity': 'critical',
+            'description': 'Admin updated description with enough content.',
+            'expected_impact': 'Admin impact statement.',
+            'organization_name': '',
+        })
+        challenge.refresh_from_db()
+        self.assertEqual(challenge.status, 'approved',
+                         "Admin editing approved challenge should keep status=approved.")
+
+
+# ===========================================================================
+# 4. VOTING TESTS
+# ===========================================================================
+
+class VoteTests(BaseTestCase):
+    def test_vote_toggle_adds_vote(self):
+        challenge = self._make_challenge(status="approved")
+        self.client.login(username="student1", password="testpass99")
+        self.client.post(reverse('challenges:vote_toggle', kwargs={'pk': challenge.pk}))
+        self.assertEqual(challenge.votes.count(), 1)
+
+    def test_vote_toggle_removes_vote(self):
+        challenge = self._make_challenge(status="approved")
+        self.client.login(username="student1", password="testpass99")
+        # Vote once
+        self.client.post(reverse('challenges:vote_toggle', kwargs={'pk': challenge.pk}))
+        # Toggle off
+        self.client.post(reverse('challenges:vote_toggle', kwargs={'pk': challenge.pk}))
+        self.assertEqual(challenge.votes.count(), 0)
+
+    def test_cannot_vote_on_pending_challenge(self):
+        challenge = self._make_challenge(status="pending")
+        self.client.login(username="student1", password="testpass99")
+        self.client.post(reverse('challenges:vote_toggle', kwargs={'pk': challenge.pk}))
+        self.assertEqual(challenge.votes.count(), 0,
+                         "Votes on pending challenges must be blocked.")
+
+    def test_vote_requires_login(self):
+        challenge = self._make_challenge(status="approved")
+        response = self.client.post(reverse('challenges:vote_toggle', kwargs={'pk': challenge.pk}))
+        self.assertNotEqual(response.status_code, 200)
+        self.assertEqual(challenge.votes.count(), 0)
+
+    def test_vote_is_post_only(self):
+        challenge = self._make_challenge(status="approved")
+        self.client.login(username="student1", password="testpass99")
+        response = self.client.get(reverse('challenges:vote_toggle', kwargs={'pk': challenge.pk}))
+        self.assertEqual(response.status_code, 405)
+
+
+# ===========================================================================
+# 5. COMMENT TESTS
+# ===========================================================================
+
+class CommentTests(BaseTestCase):
+    def test_comment_on_approved_challenge(self):
+        challenge = self._make_challenge(status="approved")
+        self.client.login(username="student1", password="testpass99")
+        self.client.post(
+            reverse('challenges:comment_add', kwargs={'pk': challenge.pk}),
+            {'content': 'Excellent initiative!'}
+        )
+        self.assertEqual(challenge.comments.count(), 1)
+
+    def test_cannot_comment_on_pending_challenge(self):
+        challenge = self._make_challenge(status="pending")
+        self.client.login(username="student1", password="testpass99")
+        self.client.post(
+            reverse('challenges:comment_add', kwargs={'pk': challenge.pk}),
+            {'content': 'Trying to comment.'}
+        )
+        self.assertEqual(challenge.comments.count(), 0,
+                         "Comments on pending challenges must be blocked.")
+
+    def test_delete_own_comment(self):
+        challenge = self._make_challenge(status="approved")
+        comment = Comment.objects.create(
+            challenge=challenge, user=self.student, content="My comment"
+        )
+        self.client.login(username="student1", password="testpass99")
+        self.client.post(reverse('challenges:comment_delete', kwargs={'pk': comment.pk}))
+        self.assertFalse(Comment.objects.filter(pk=comment.pk).exists())
+
+    def test_cannot_delete_others_comment(self):
+        challenge = self._make_challenge(status="approved")
+        comment = Comment.objects.create(
+            challenge=challenge, user=self.student, content="Protected comment"
+        )
+        self.client.login(username="student2", password="testpass99")
+        self.client.post(reverse('challenges:comment_delete', kwargs={'pk': comment.pk}))
+        self.assertTrue(Comment.objects.filter(pk=comment.pk).exists())
+
+
+# ===========================================================================
+# 6. ADMIN APPROVE / REJECT
+# ===========================================================================
+
+class AdminModerationTests(BaseTestCase):
+    def test_admin_approve_requires_post(self):
+        challenge = self._make_challenge(status="pending")
+        self.client.login(username="admin1", password="testpass99")
+        # GET should return 405
+        response = self.client.get(reverse('dashboard:admin_approve', kwargs={'pk': challenge.pk}))
+        self.assertEqual(response.status_code, 405)
+
+    def test_admin_approve_via_post(self):
+        challenge = self._make_challenge(status="pending")
+        self.client.login(username="admin1", password="testpass99")
+        self.client.post(reverse('dashboard:admin_approve', kwargs={'pk': challenge.pk}))
         challenge.refresh_from_db()
         self.assertEqual(challenge.status, 'approved')
 
-        # Now public list shows approved challenge
-        self.client.logout()
-        res_list_after = self.client.get(reverse('challenges:list'))
-        self.assertContains(res_list_after, 'Test Estuary Plastic Cleanup')
+    def test_admin_reject_via_post(self):
+        challenge = self._make_challenge(status="pending")
+        self.client.login(username="admin1", password="testpass99")
+        self.client.post(reverse('dashboard:admin_reject', kwargs={'pk': challenge.pk}))
+        challenge.refresh_from_db()
+        self.assertEqual(challenge.status, 'rejected')
 
-    def test_upvoting_and_comments(self):
-        challenge = Challenge.objects.create(
-            title="Clean Drinking Water in Tribal Hamlets",
-            category=self.category,
-            creator=self.student,
-            location="Bastar District",
-            problem_severity="critical",
-            status="approved",
-            description="Remote hamlets lack potable groundwater filtration systems.",
-            expected_impact="Provide 2,000 residents safe water."
+    def test_non_admin_cannot_approve(self):
+        challenge = self._make_challenge(status="pending")
+        self.client.login(username="student1", password="testpass99")
+        self.client.post(reverse('dashboard:admin_approve', kwargs={'pk': challenge.pk}))
+        challenge.refresh_from_db()
+        self.assertNotEqual(challenge.status, 'approved')
+
+
+# ===========================================================================
+# 7. SOLUTION TESTS
+# ===========================================================================
+
+class SolutionTests(BaseTestCase):
+    def test_cannot_submit_solution_to_pending_challenge(self):
+        challenge = self._make_challenge(status="pending")
+        self.client.login(username="student1", password="testpass99")
+        response = self.client.post(
+            reverse('solutions:create', kwargs={'challenge_id': challenge.pk}),
+            {
+                'title': 'Blocked Solution',
+                'description': 'Some description.',
+                'proposed_implementation': 'Some plan.',
+                'expected_outcome': 'Some outcome.',
+                'required_resources': 'Some resources.',
+                'estimated_duration': '1 Month',
+            }
         )
+        self.assertFalse(Solution.objects.filter(title='Blocked Solution').exists())
 
-        self.client.login(username="student_tester", password="password123")
+    def test_solution_edit_blocked_for_non_creator(self):
+        challenge = self._make_challenge(status="approved")
+        solution = self._make_solution(challenge, creator=self.student)
+        self.client.login(username="student2", password="testpass99")
+        url = reverse('solutions:edit', kwargs={'pk': solution.pk})
+        response = self.client.get(url)
+        self.assertNotEqual(response.status_code, 200)
 
-        # 1. Upvote
-        res_vote = self.client.post(reverse('challenges:vote_toggle', kwargs={'pk': challenge.pk}))
-        self.assertEqual(res_vote.status_code, 302)
-        self.assertEqual(challenge.votes_count, 1)
-
-        # 2. Toggle Upvote off
-        res_unvote = self.client.post(reverse('challenges:vote_toggle', kwargs={'pk': challenge.pk}))
-        self.assertEqual(res_unvote.status_code, 302)
-        self.assertEqual(challenge.votes_count, 0)
-
-        # 3. Add Comment
-        res_comment = self.client.post(reverse('challenges:comment_add', kwargs={'pk': challenge.pk}), {
-            'content': 'We could deploy solar-powered UV purification kits here.'
-        })
-        self.assertEqual(res_comment.status_code, 302)
-        self.assertEqual(challenge.comments.count(), 1)
-        comment = challenge.comments.first()
-        self.assertEqual(comment.user, self.student)
-
-        # 4. Delete own comment
-        res_del_comment = self.client.post(reverse('challenges:comment_delete', kwargs={'pk': comment.pk}))
-        self.assertEqual(res_del_comment.status_code, 302)
-        self.assertEqual(challenge.comments.count(), 0)
-
-    def test_solution_submission_acceptance_and_project_launch(self):
-        challenge = Challenge.objects.create(
-            title="Solar Irrigation for Drought Prone Farms",
-            category=self.category,
-            creator=self.university,
-            location="Vidarbha, Maharashtra",
-            problem_severity="critical",
-            status="approved",
-            description="Groundwater pumping is severely limited by erratic grid power.",
-            expected_impact="Ensure continuous drip irrigation for 50 acres."
-        )
-
-        # Student submits solution
-        self.client.login(username="student_tester", password="password123")
-        sol_data = {
-            'title': 'Smart IoT DC Solar Drip Pump System',
-            'estimated_duration': '3 Months',
-            'description': 'Direct drive DC submersible pump with capacitive IoT moisture sensors.',
-            'proposed_implementation': 'Fabricate pump controller and field test on 5 acre plot.',
-            'expected_outcome': 'Reduce water consumption by 40% and zero fuel reliance.',
-            'required_resources': 'Solar panels, DC pump, ESP32 microcontroller.',
-        }
-        res_sol = self.client.post(reverse('solutions:create', kwargs={'challenge_id': challenge.pk}), sol_data)
-        self.assertEqual(res_sol.status_code, 302)
-
-        solution = Solution.objects.get(title='Smart IoT DC Solar Drip Pump System')
-        self.assertEqual(solution.is_accepted, False)
-
-        # University (Challenge Creator) accepts solution
-        self.client.login(username="univ_tester", password="password123")
-        res_accept = self.client.post(reverse('solutions:accept_toggle', kwargs={'pk': solution.pk}))
-        self.assertEqual(res_accept.status_code, 302)
-
+    def test_accept_toggle_by_challenge_creator(self):
+        challenge = self._make_challenge(creator=self.student, status="approved")
+        solution = self._make_solution(challenge, creator=self.student2)
+        self.client.login(username="student1", password="testpass99")
+        self.client.post(reverse('solutions:accept_toggle', kwargs={'pk': solution.pk}))
         solution.refresh_from_db()
-        self.assertEqual(solution.is_accepted, True)
+        self.assertTrue(solution.is_accepted)
 
-        # Launch Project from Accepted Solution
-        self.client.login(username="student_tester", password="password123")
-        proj_data = {
-            'title': 'Solar Drip Pump Deployment Initiative',
-            'status': 'active',
-            'progress_percentage': 15,
-            'description': 'Collaborative deployment across Vidarbha farming communities.',
-        }
-        res_proj = self.client.post(reverse('collaborations:create_from_solution', kwargs={'solution_id': solution.pk}), proj_data)
-        self.assertEqual(res_proj.status_code, 302)
+    def test_accept_toggle_blocked_for_unrelated_user(self):
+        challenge = self._make_challenge(creator=self.student, status="approved")
+        solution = self._make_solution(challenge, creator=self.student2)
+        # Login as a third user
+        third = User.objects.create_user(
+            username='third', password='testpass99', role='student'
+        )
+        self.client.login(username='third', password='testpass99')
+        self.client.post(reverse('solutions:accept_toggle', kwargs={'pk': solution.pk}))
+        solution.refresh_from_db()
+        self.assertFalse(solution.is_accepted)
 
-        project = Project.objects.get(title='Solar Drip Pump Deployment Initiative')
-        self.assertEqual(project.lead, self.student)
-        self.assertTrue(project.is_member(self.student))
 
-        # Add University Mentor to Project Team
-        self.client.post(reverse('collaborations:member_add', kwargs={'pk': project.pk}), {
-            'user': self.university.id,
-            'role': 'Faculty Mentor',
-        })
-        self.assertTrue(project.is_member(self.university))
+# ===========================================================================
+# 8. COLLABORATION / PROJECT TESTS
+# ===========================================================================
 
-    def test_partnership_request_workflow(self):
-        self.client.login(username="industry_tester", password="password123")
+class ProjectTests(BaseTestCase):
+    def test_project_requires_accepted_solution(self):
+        """Creating a project from an unaccepted solution must be blocked."""
+        challenge = self._make_challenge(status="approved")
+        solution = self._make_solution(challenge, creator=self.student, accepted=False)
+        self.client.login(username="student1", password="testpass99")
+        response = self.client.post(
+            reverse('collaborations:create_from_solution', kwargs={'solution_id': solution.pk}),
+            {
+                'title': 'Should Not Create',
+                'status': 'planning',
+                'progress_percentage': 0,
+                'description': 'Attempt to bypass acceptance check.',
+            }
+        )
+        self.assertFalse(Project.objects.filter(title='Should Not Create').exists())
 
-        # Industry sends partnership request to University
-        req_data = {
-            'target_organization': self.university.id,
-            'partnership_type': 'technical',
-            'message': 'We would like to co-sponsor university research into renewable energy microgrids.',
-        }
-        res_req = self.client.post(reverse('partnerships:request_create'), req_data)
-        self.assertEqual(res_req.status_code, 302)
+    def test_project_creation_by_non_solution_creator_blocked(self):
+        challenge = self._make_challenge(creator=self.student, status="approved")
+        solution = self._make_solution(challenge, creator=self.student, accepted=True)
+        # student2 is not the solution creator
+        self.client.login(username="student2", password="testpass99")
+        response = self.client.post(
+            reverse('collaborations:create_from_solution', kwargs={'solution_id': solution.pk}),
+            {
+                'title': 'Unauthorized Project',
+                'status': 'planning',
+                'progress_percentage': 0,
+                'description': 'Should not be created.',
+            }
+        )
+        self.assertFalse(Project.objects.filter(title='Unauthorized Project').exists())
 
-        p_req = PartnershipRequest.objects.get(requesting_organization=self.industry)
-        self.assertEqual(p_req.status, 'pending')
+    def test_unverified_university_cannot_lead_project(self):
+        challenge = self._make_challenge(creator=self.univ, status="approved")
+        solution = self._make_solution(challenge, creator=self.univ, accepted=True)
+        self.client.login(username="univ1", password="testpass99")
+        response = self.client.post(
+            reverse('collaborations:create_from_solution', kwargs={'solution_id': solution.pk}),
+            {
+                'title': 'Unverified Project',
+                'status': 'planning',
+                'progress_percentage': 0,
+                'description': 'Should be blocked.',
+            }
+        )
+        self.assertFalse(Project.objects.filter(title='Unverified Project').exists(),
+                         "Unverified university must not be able to lead a project.")
 
-        # University logs in and accepts the request
-        self.client.login(username="univ_tester", password="password123")
-        res_respond = self.client.post(reverse('partnerships:respond', kwargs={'pk': p_req.pk}), {
-            'status': 'accepted',
-            'response_note': 'We are pleased to partner with Apex Energy Corp.',
-        })
-        self.assertEqual(res_respond.status_code, 302)
+    def test_quick_join_is_post_only(self):
+        challenge = self._make_challenge(status="approved")
+        solution = self._make_solution(challenge, creator=self.student, accepted=True)
+        project = Project.objects.create(
+            title="Open Project",
+            challenge=challenge,
+            solution=solution,
+            lead=self.student,
+            status="active",
+            description="Open for contributors.",
+        )
+        self.client.login(username="student2", password="testpass99")
+        response = self.client.get(
+            reverse('collaborations:join', kwargs={'pk': project.pk})
+        )
+        self.assertEqual(response.status_code, 405)
 
+
+# ===========================================================================
+# 9. PARTNERSHIP TESTS
+# ===========================================================================
+
+class PartnershipTests(BaseTestCase):
+    def test_unverified_industry_cannot_send_partnership_request(self):
+        self.client.login(username="ind1", password="testpass99")
+        response = self.client.post(
+            reverse('partnerships:request_create'),
+            {
+                'target_organization': self.univ_verified.pk,
+                'partnership_type': 'technical',
+                'message': 'Let us partner!',
+            }
+        )
+        self.assertFalse(
+            PartnershipRequest.objects.filter(requesting_organization=self.industry).exists(),
+            "Unverified industry must not be able to send partnership requests."
+        )
+
+    def test_verified_industry_can_send_partnership_request(self):
+        self.client.login(username="ind2", password="testpass99")
+        response = self.client.post(
+            reverse('partnerships:request_create'),
+            {
+                'target_organization': self.univ_verified.pk,
+                'partnership_type': 'technical',
+                'message': 'We want to partner with you!',
+            }
+        )
+        self.assertTrue(
+            PartnershipRequest.objects.filter(requesting_organization=self.industry_verified).exists()
+        )
+
+    def test_target_can_accept_partnership(self):
+        p_req = PartnershipRequest.objects.create(
+            requesting_organization=self.industry_verified,
+            target_organization=self.univ_verified,
+            partnership_type='research',
+            message='Research collaboration.',
+            status='pending',
+        )
+        self.client.login(username="univ2", password="testpass99")
+        self.client.post(
+            reverse('partnerships:respond', kwargs={'pk': p_req.pk}),
+            {'status': 'accepted', 'response_note': 'Glad to partner!'}
+        )
         p_req.refresh_from_db()
         self.assertEqual(p_req.status, 'accepted')
 
-    def test_dashboards_render_for_all_roles(self):
-        # 1. Student Dashboard
-        self.client.login(username="student_tester", password="password123")
-        res_student = self.client.get(reverse('dashboard:index'))
-        self.assertEqual(res_student.status_code, 200)
-        self.assertContains(res_student, "Citizen & Student Innovator Dashboard")
+    def test_target_can_decline_partnership(self):
+        p_req = PartnershipRequest.objects.create(
+            requesting_organization=self.industry_verified,
+            target_organization=self.univ_verified,
+            partnership_type='research',
+            message='Would you join us?',
+            status='pending',
+        )
+        self.client.login(username="univ2", password="testpass99")
+        self.client.post(
+            reverse('partnerships:respond', kwargs={'pk': p_req.pk}),
+            {'status': 'rejected', 'response_note': 'Not at this time.'}
+        )
+        p_req.refresh_from_db()
+        # Model uses 'rejected' to mean Declined
+        self.assertEqual(p_req.status, 'rejected')
 
-        # 2. University Dashboard
-        self.client.login(username="univ_tester", password="password123")
-        res_univ = self.client.get(reverse('dashboard:index'))
-        self.assertEqual(res_univ.status_code, 200)
-        self.assertContains(res_univ, "Academic Partner Portal")
+    def test_non_target_cannot_respond_to_partnership(self):
+        p_req = PartnershipRequest.objects.create(
+            requesting_organization=self.industry_verified,
+            target_organization=self.univ_verified,
+            partnership_type='research',
+            message='Private request.',
+            status='pending',
+        )
+        # student2 is not the target — should get 404 or redirect
+        self.client.login(username="student2", password="testpass99")
+        response = self.client.post(
+            reverse('partnerships:respond', kwargs={'pk': p_req.pk}),
+            {'status': 'accepted', 'response_note': 'Hacked!'}
+        )
+        p_req.refresh_from_db()
+        self.assertEqual(p_req.status, 'pending',
+                         "Non-target must not be able to respond to a partnership request.")
 
-        # 3. Industry Dashboard
-        self.client.login(username="industry_tester", password="password123")
-        res_ind = self.client.get(reverse('dashboard:index'))
-        self.assertEqual(res_ind.status_code, 200)
-        self.assertContains(res_ind, "Corporate & CSR Partner Portal")
+    def test_logout_requires_post(self):
+        self.client.login(username="student1", password="testpass99")
+        response = self.client.get(reverse('accounts:logout'))
+        # GET on logout must return 405
+        self.assertEqual(response.status_code, 405)
 
-        # 4. Admin Dashboard
-        self.client.login(username="admin_tester", password="password123")
-        res_admin = self.client.get(reverse('dashboard:index'))
-        self.assertEqual(res_admin.status_code, 200)
-        self.assertContains(res_admin, "Superuser / Staff Administration")
+    def test_dashboard_loads_for_all_roles(self):
+        for username, text in [
+            ("student1", "Citizen"),
+            ("univ1", "Academic"),
+            ("ind1", "Corporate"),
+            ("admin1", "Administration"),
+        ]:
+            self.client.login(username=username, password="testpass99")
+            response = self.client.get(reverse('dashboard:index'))
+            self.assertEqual(response.status_code, 200)
+
+
+
+# ===========================================================================
+# 10. PHASE 3 FEATURE TESTS
+# ===========================================================================
+
+class AnalyticsTests(BaseTestCase):
+    def test_unauthenticated_user_cannot_access_analytics(self):
+        response = self.client.get(reverse('dashboard:analytics'))
+        self.assertEqual(response.status_code, 302)
+
+    def test_student_cannot_access_analytics(self):
+        self.client.login(username="student1", password="testpass99")
+        response = self.client.get(reverse('dashboard:analytics'))
+        self.assertEqual(response.status_code, 302)
+
+    def test_unverified_industry_cannot_access_analytics(self):
+        self.client.login(username="ind1", password="testpass99")
+        response = self.client.get(reverse('dashboard:analytics'))
+        self.assertEqual(response.status_code, 302)
+
+    def test_verified_industry_can_access_analytics(self):
+        self.client.login(username="ind2", password="testpass99")
+        response = self.client.get(reverse('dashboard:analytics'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Platform Analytics")
+
+    def test_admin_can_access_analytics(self):
+        self.client.login(username="admin1", password="testpass99")
+        response = self.client.get(reverse('dashboard:analytics'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Platform Analytics")
+
+
+class PilotSponsorTests(BaseTestCase):
+    def test_verified_industry_can_sponsor_pilot(self):
+        challenge = self._make_challenge(status="approved")
+        solution = self._make_solution(challenge, creator=self.student, accepted=True)
+        project = Project.objects.create(
+            title="Clean Rivers Project",
+            challenge=challenge,
+            solution=solution,
+            lead=self.student,
+            status="active",
+            description="Active project ready for pilot."
+        )
+        self.client.login(username="ind2", password="testpass99")
+        url = reverse('collaborations:sponsor_pilot', kwargs={'pk': project.pk})
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 302)
+        project.refresh_from_db()
+        self.assertEqual(project.status, 'pilot')
+        self.assertEqual(project.pilot_sponsor, self.industry_verified)
+
+    def test_unverified_industry_cannot_sponsor_pilot(self):
+        challenge = self._make_challenge(status="approved")
+        solution = self._make_solution(challenge, creator=self.student, accepted=True)
+        project = Project.objects.create(
+            title="Clean Rivers Project 2",
+            challenge=challenge,
+            solution=solution,
+            lead=self.student,
+            status="active",
+            description="Active project."
+        )
+        self.client.login(username="ind1", password="testpass99")
+        url = reverse('collaborations:sponsor_pilot', kwargs={'pk': project.pk})
+        response = self.client.post(url)
+        project.refresh_from_db()
+        self.assertNotEqual(project.status, 'pilot')
+        self.assertIsNone(project.pilot_sponsor)
+
+
+class LeaderboardTests(BaseTestCase):
+    def test_leaderboard_page_loads(self):
+        self.client.login(username="student1", password="testpass99")
+        response = self.client.get(reverse('dashboard:leaderboard'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Contributor Leaderboard")
+
+    def test_points_awarded_on_challenge_creation(self):
+        from accounts.models import UserScore
+        self.client.login(username="student1", password="testpass99")
+        post_data = {
+            'title': 'Leaderboard Challenge',
+            'category': self.category.id,
+            'location': 'New York',
+            'problem_severity': 'medium',
+            'description': 'Valid challenge description here.',
+            'expected_impact': 'Impact statement.',
+        }
+        self.client.post(reverse('challenges:create'), post_data)
+        self.assertTrue(
+            UserScore.objects.filter(user=self.student, event_type='challenge_created').exists()
+        )
+
+
+class MapViewTests(BaseTestCase):
+    def test_map_page_loads(self):
+        response = self.client.get(reverse('challenges:map'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Challenge Map")

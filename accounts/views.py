@@ -1,9 +1,11 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, authenticate, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib import messages
 from django.contrib.auth import get_user_model
+from django.utils.http import url_has_allowed_host_and_scheme
 from .forms import UserRegistrationForm, UserLoginForm, UserProfileForm
 from .utils import log_activity
 
@@ -54,8 +56,14 @@ def login_view(request):
             user = form.get_user()
             login(request, user)
             messages.success(request, f"Welcome back, {user.get_full_name() or user.username}!")
-            next_url = request.GET.get('next') or request.POST.get('next') or 'dashboard:index'
-            return redirect(next_url)
+            next_url = request.POST.get('next') or request.GET.get('next')
+            if next_url and url_has_allowed_host_and_scheme(
+                url=next_url,
+                allowed_hosts={request.get_host()},
+                require_https=request.is_secure()
+            ):
+                return redirect(next_url)
+            return redirect('dashboard:index')
         else:
             messages.error(request, "Invalid username or password. Please try again.")
     else:
@@ -64,6 +72,7 @@ def login_view(request):
     return render(request, 'accounts/login.html', {'form': form})
 
 
+@require_POST
 @login_required
 def logout_view(request):
     """
