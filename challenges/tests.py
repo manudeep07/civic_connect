@@ -966,3 +966,27 @@ class SmokeAndRegressionTests(TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertIsNone(res.context.get('accepted_solution'))
         self.assertNotContains(res, "Launch Project for Solution")
+
+    def test_challenge_list_not_on_map_badge(self):
+        """
+        Verifies that challenges with empty latitude/longitude show 'Not on map' badge on challenge cards.
+        """
+        category = Category.objects.first()
+        user = User.objects.filter(role='student').first()
+        ch_unmapped = Challenge.objects.create(
+            title="Unmapped Challenge Card",
+            category=category,
+            creator=user,
+            location="Remote Village",
+            problem_severity="medium",
+            status="approved",
+            description="Challenge without coordinates.",
+            expected_impact="High impact",
+            latitude=None,
+            longitude=None,
+        )
+
+        res = self.client.get(reverse('challenges:list'))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "Not on map")
+        self.assertContains(res, "Unmapped Challenge Card")

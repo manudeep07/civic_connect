@@ -234,6 +234,9 @@ Run the test suite with:
 ```bash
 python manage.py test
 ```
+
+> **Note:** `python manage.py test` works with no `.env` file or environment variables set (test runs automatically use a safe throwaway test key and skip HTTPS/SSL redirects). Copying the environment template (`cp .env.example .env`) is needed only for `runserver`.
+
 The test suite covers:
 - Registration rejection of administrative role
 - Role auto-verification logic (students vs organizations)

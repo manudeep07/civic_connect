@@ -16,26 +16,45 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # ---------------------------------------------------------------------------
 # Security-sensitive settings — read from environment / .env
 # ---------------------------------------------------------------------------
+IS_TESTING = 'test' in sys.argv
+
 if _USE_DECOUPLE:
     DEBUG = config('DEBUG', default=False, cast=bool)
-    if DEBUG or 'test' in sys.argv:
+    if IS_TESTING:
+        SECRET_KEY = os.environ.get('SECRET_KEY') or config('SECRET_KEY', default='django-insecure-test-throwaway-secret-key-1234567890') or 'django-insecure-test-throwaway-secret-key-1234567890'
+    elif DEBUG:
         SECRET_KEY = config('SECRET_KEY', default='django-insecure-dev-key-change-in-production')
     else:
         SECRET_KEY = config('SECRET_KEY', default='')
-    ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='127.0.0.1,localhost' if DEBUG else '', cast=Csv())
+    ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='127.0.0.1,localhost' if (DEBUG or IS_TESTING) else '', cast=Csv())
     _csrf_origins = config('CSRF_TRUSTED_ORIGINS', default='http://127.0.0.1:8000,http://localhost:8000' if DEBUG else '', cast=Csv())
+    SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=(not DEBUG), cast=bool)
+    SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default=(not DEBUG), cast=bool)
+    CSRF_COOKIE_SECURE = config('CSRF_COOKIE_SECURE', default=(not DEBUG), cast=bool)
 else:
     DEBUG = os.environ.get('DEBUG', 'False').lower() in ('true', '1', 'yes')
-    if DEBUG or 'test' in sys.argv:
+    if IS_TESTING:
+        SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-test-throwaway-secret-key-1234567890')
+    elif DEBUG:
         SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-dev-key-change-in-production')
     else:
         SECRET_KEY = os.environ.get('SECRET_KEY', '')
-    _hosts = os.environ.get('ALLOWED_HOSTS', '127.0.0.1,localhost' if DEBUG else '')
+    _hosts = os.environ.get('ALLOWED_HOSTS', '127.0.0.1,localhost' if (DEBUG or IS_TESTING) else '')
     ALLOWED_HOSTS = [h.strip() for h in _hosts.split(',') if h.strip()]
     _csrf = os.environ.get('CSRF_TRUSTED_ORIGINS', 'http://127.0.0.1:8000,http://localhost:8000' if DEBUG else '')
     _csrf_origins = [c.strip() for c in _csrf.split(',') if c.strip()]
 
-if not DEBUG and 'test' not in sys.argv and not SECRET_KEY:
+    def _bool_from_env(key, default):
+        val = os.environ.get(key)
+        if val is None:
+            return default
+        return val.lower() in ('true', '1', 'yes')
+
+    SECURE_SSL_REDIRECT = _bool_from_env('SECURE_SSL_REDIRECT', not DEBUG)
+    SESSION_COOKIE_SECURE = _bool_from_env('SESSION_COOKIE_SECURE', not DEBUG)
+    CSRF_COOKIE_SECURE = _bool_from_env('CSRF_COOKIE_SECURE', not DEBUG)
+
+if not DEBUG and not IS_TESTING and not SECRET_KEY:
     raise ImproperlyConfigured("SECRET_KEY environment variable must be set in production when DEBUG=False.")
 
 CSRF_TRUSTED_ORIGINS = [orig for orig in _csrf_origins if orig]
@@ -191,12 +210,17 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # ---------------------------------------------------------------------------
 # Production security settings — only active when DEBUG=False
 # ---------------------------------------------------------------------------
-if not DEBUG:
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
+if IS_TESTING:
+    # Test runs: skip SECURE_SSL_REDIRECT, secure cookies and HSTS
+    SECURE_SSL_REDIRECT = False
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
+    SECURE_HSTS_SECONDS = 0
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+    SECURE_HSTS_PRELOAD = False
+elif not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
-    SECURE_SSL_REDIRECT = True
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
