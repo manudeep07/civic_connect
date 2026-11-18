@@ -207,6 +207,9 @@ MESSAGE_TAGS = {
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# Referrer Policy — allows OpenStreetMap and Nominatim to receive the origin header
+SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
+
 # ---------------------------------------------------------------------------
 # Production security settings — only active when DEBUG=False
 # ---------------------------------------------------------------------------

@@ -1,11 +1,11 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}{{ action_title }} – CivicConnect{% endblock %}
 
-{% block extra_css %}
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+{% block extra_head %}
+{% include 'partials/leaflet_assets.html' %}
 <style>
-  #location-picker-map { height: 320px; border-radius: 8px; border: 1px solid #dee2e6; z-index: 1; }
   .search-results-dropdown {
     position: absolute;
     top: 100%;
@@ -27,7 +27,7 @@
     border-bottom: 1px solid #f1f3f5;
   }
   .search-result-item:last-child { border-bottom: none; }
-  .search-result-item:hover { background-color: #f0fdf4; color: #166534; }
+  .search-result-item:hover { background-color: #f1f5f9; color: #0f172a; }
 </style>
 {% endblock %}
 
@@ -116,31 +116,37 @@
                 <i class="bi bi-geo-alt-fill text-danger me-1"></i> Geographic Pinpoint (Optional)
               </label>
               <div class="d-flex gap-2">
-                <button type="button" id="btn-current-loc" class="btn btn-outline-primary btn-sm py-1 px-2" style="font-size: 0.78rem;">
+                <button type="button" id="btn-current-loc" class="btn btn-outline-primary btn-sm py-1 px-2 btn-map-control">
                   <i class="bi bi-crosshair me-1"></i> Use my current location
                 </button>
-                <button type="button" id="btn-clear-pin" class="btn btn-outline-secondary btn-sm py-1 px-2" style="font-size: 0.78rem;">
+                <button type="button" id="btn-clear-pin" class="btn btn-outline-secondary btn-sm py-1 px-2 btn-map-control">
                   <i class="bi bi-trash me-1"></i> Clear Pin
                 </button>
               </div>
             </div>
 
-            <!-- Nominatim Place Search Box -->
-            <div class="position-relative mb-2">
+            <!-- Nominatim Place Search Box (kept with z-index above map) -->
+            <div class="position-relative mb-2 z-index-picker">
               <div class="input-group input-group-sm">
                 <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
                 <input type="text" id="place-search-input" class="form-control" placeholder="Search a city, region, or landmark to place marker..." autocomplete="off">
-                <span class="input-group-text bg-white text-muted" id="search-spinner" style="display:none;">
+                <span class="input-group-text bg-white text-muted d-none" id="search-spinner">
                   <span class="spinner-border spinner-border-sm" role="status"></span>
                 </span>
               </div>
               <div id="place-search-dropdown" class="search-results-dropdown"></div>
             </div>
 
-            <div id="location-picker-map"></div>
+            <!-- Geolocation status / error alert -->
+            <div id="geo-status-alert" class="alert alert-warning py-1 px-2 small mb-2 d-none" role="alert"></div>
+
+            <!-- Isolated flat map container -->
+            <div class="map-wrapper map-picker-h">
+              <div id="location-picker-map" class="map-canvas" tabindex="0" role="region" aria-label="Interactive map to select coordinates. Use arrow keys to pan, + and - to zoom, Enter or Space to pin center."></div>
+            </div>
 
             <div class="d-flex justify-content-between align-items-center mt-2 small text-muted">
-              <span>Click on the map or drag the pin to set coordinates.</span>
+              <span>Click the map, drag the pin, or press Enter while focused to drop a pin.</span>
               <span id="coords-status" class="fw-semibold text-secondary">
                 {% if form.latitude.value and form.longitude.value %}
                   Lat: {{ form.latitude.value }}, Lng: {{ form.longitude.value }}
@@ -179,7 +185,7 @@
 
           <div class="d-flex justify-content-end gap-2 pt-3 border-top">
             <a href="{% url 'challenges:list' %}" class="btn btn-light border">Cancel</a>
-            <button type="submit" class="btn btn-civic-teal px-4 fw-semibold">
+            <button type="submit" class="btn btn-primary px-4 fw-semibold">
               <i class="bi bi-cloud-arrow-up me-1"></i> Submit Challenge
             </button>
           </div>
@@ -191,7 +197,6 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   const latField = document.getElementById('id_latitude');
@@ -203,9 +208,10 @@ document.addEventListener('DOMContentLoaded', function() {
   const searchSpinner = document.getElementById('search-spinner');
   const btnCurrentLoc = document.getElementById('btn-current-loc');
   const btnClearPin = document.getElementById('btn-clear-pin');
+  const geoAlert = document.getElementById('geo-status-alert');
 
-  let initLat = parseFloat(latField.value);
-  let initLng = parseFloat(lngField.value);
+  let initLat = parseFloat(latField ? latField.value : '');
+  let initLng = parseFloat(lngField ? lngField.value : '');
   const hasInitialCoords = !isNaN(initLat) && !isNaN(initLng);
 
   const defaultCenter = hasInitialCoords ? [initLat, initLng] : [20.5937, 78.9629];
@@ -213,17 +219,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
   const map = L.map('location-picker-map').setView(defaultCenter, defaultZoom);
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    attribution: '&copy; OpenStreetMap contributors'
-  }).addTo(map);
+  if (window.createCivicTileLayer) {
+    window.createCivicTileLayer(map);
+  }
+  if (window.setupMapInvalidation) {
+    window.setupMapInvalidation(map);
+  }
 
   let marker = null;
 
   function updateFields(lat, lng, updateLocationName = false, displayName = '') {
-    latField.value = lat.toFixed(6);
-    lngField.value = lng.toFixed(6);
-    coordsStatus.textContent = `Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}`;
+    if (latField) latField.value = lat.toFixed(6);
+    if (lngField) lngField.value = lng.toFixed(6);
+    if (coordsStatus) coordsStatus.textContent = `Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}`;
 
     if (updateLocationName && displayName && locField) {
       locField.value = displayName;
@@ -255,15 +263,27 @@ document.addEventListener('DOMContentLoaded', function() {
     setMarker(e.latlng.lat, e.latlng.lng, false);
   });
 
+  // Keyboard accessibility: Enter or Space on map drops pin at center
+  const mapEl = document.getElementById('location-picker-map');
+  if (mapEl) {
+    mapEl.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        const center = map.getCenter();
+        setMarker(center.lat, center.lng, false);
+      }
+    });
+  }
+
   if (btnClearPin) {
     btnClearPin.addEventListener('click', function() {
       if (marker) {
         map.removeLayer(marker);
         marker = null;
       }
-      latField.value = '';
-      lngField.value = '';
-      coordsStatus.textContent = 'No coordinates pinned';
+      if (latField) latField.value = '';
+      if (lngField) lngField.value = '';
+      if (coordsStatus) coordsStatus.textContent = 'No coordinates pinned';
     });
   }
 
@@ -271,6 +291,7 @@ document.addEventListener('DOMContentLoaded', function() {
     btnCurrentLoc.addEventListener('click', function() {
       btnCurrentLoc.disabled = true;
       btnCurrentLoc.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Locating...';
+      if (geoAlert) geoAlert.classList.add('d-none');
 
       navigator.geolocation.getCurrentPosition(
         function(pos) {
@@ -281,7 +302,20 @@ document.addEventListener('DOMContentLoaded', function() {
         function(err) {
           btnCurrentLoc.disabled = false;
           btnCurrentLoc.innerHTML = '<i class="bi bi-crosshair me-1"></i> Use my current location';
-          alert('Could not retrieve current location: ' + err.message);
+          let msg = 'Could not retrieve your location.';
+          if (err.code === 1) {
+            msg = 'Location permission was denied. You can search for a location or click on the map.';
+          } else if (err.code === 2) {
+            msg = 'Location information is unavailable. Please search for a place or click the map.';
+          } else if (err.code === 3) {
+            msg = 'Location request timed out. Please try again or search.';
+          }
+          if (geoAlert) {
+            geoAlert.textContent = msg;
+            geoAlert.classList.remove('d-none');
+          } else {
+            alert(msg);
+          }
         },
         { enableHighAccuracy: true, timeout: 8000 }
       );

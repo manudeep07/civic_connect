@@ -1,0 +1,61 @@
+{% load static %}
+<!-- Leaflet 1.9.4 & MarkerCluster 1.5.3 (Vendored locally for offline & CSP reliability) -->
+<link rel="stylesheet" href="{% static 'vendor/leaflet/leaflet.css' %}">
+<link rel="stylesheet" href="{% static 'vendor/markercluster/MarkerCluster.css' %}">
+<link rel="stylesheet" href="{% static 'vendor/markercluster/MarkerCluster.Default.css' %}">
+
+<script src="{% static 'vendor/leaflet/leaflet.js' %}"></script>
+<script src="{% static 'vendor/markercluster/leaflet.markercluster.js' %}"></script>
+
+<script>
+  // Configure Leaflet default marker icons to use hashed static URLs under WhiteNoise
+  if (typeof L !== 'undefined' && L.Icon && L.Icon.Default) {
+    delete L.Icon.Default.prototype._getIconUrl;
+    L.Icon.Default.mergeOptions({
+      iconRetinaUrl: "{% static 'vendor/leaflet/images/marker-icon-2x.png' %}",
+      iconUrl: "{% static 'vendor/leaflet/images/marker-icon.png' %}",
+      shadowUrl: "{% static 'vendor/leaflet/images/marker-shadow.png' %}"
+    });
+  }
+
+  // Common tile layer factory with crossOrigin, attribution & failure notice
+  window.createCivicTileLayer = function(map) {
+    const tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      crossOrigin: true,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'
+    });
+
+    let tileErrorCount = 0;
+    tileLayer.on('tileerror', function() {
+      tileErrorCount++;
+      if (tileErrorCount >= 3) {
+        const container = map.getContainer();
+        if (container && !container.querySelector('.map-tile-error-notice')) {
+          const notice = document.createElement('div');
+          notice.className = 'map-tile-error-notice';
+          notice.setAttribute('role', 'alert');
+          notice.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i> Map tiles could not be loaded. Check your internet connection.';
+          notice.style.cssText = 'position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); z-index: 1000; background: #ffffff; color: #991b1b; border: 1px solid #fecaca; padding: 6px 14px; border-radius: 6px; font-size: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); pointer-events: none; white-space: nowrap; font-family: inherit;';
+          container.appendChild(notice);
+        }
+      }
+    });
+
+    tileLayer.addTo(map);
+    return tileLayer;
+  };
+
+  // Common resize & window load invalidation handler
+  window.setupMapInvalidation = function(map) {
+    window.addEventListener('load', function() {
+      map.invalidateSize();
+    });
+    window.addEventListener('resize', function() {
+      map.invalidateSize();
+    });
+    setTimeout(function() {
+      map.invalidateSize();
+    }, 250);
+  };
+</script>

@@ -7,13 +7,12 @@
 
   <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
     <div>
-      <h2 class="fw-bold text-dark mb-1">
-        <i class="bi bi-trophy-fill text-warning me-2"></i>Contributor Leaderboard
-      </h2>
+      <h1 class="h3 fw-bold text-dark mb-1">
+        <i class="bi bi-trophy text-muted me-2"></i>Contributor Leaderboard
+      </h1>
       <p class="text-muted mb-0">
         Top community innovators ranked by contribution points.
         <span class="ms-2 small text-secondary">
-          <i class="bi bi-info-circle"></i>
           Challenge: 10 pts &nbsp;|&nbsp; Solution Accepted: 25 pts &nbsp;|&nbsp; Project Completed: 50 pts
         </span>
       </p>
@@ -24,8 +23,8 @@
   </div>
 
   {% if user.is_authenticated %}
-  <div class="alert alert-primary d-flex align-items-center gap-3 mb-4">
-    <i class="bi bi-person-circle fs-3"></i>
+  <div class="card card-civic p-3 mb-4 d-flex flex-row align-items-center gap-3">
+    <i class="bi bi-person-circle fs-3 text-muted"></i>
     <div>
       <strong>Your Score:</strong> {{ user_points }} points
     </div>
@@ -33,12 +32,12 @@
   {% endif %}
 
   {% if top_users %}
-  <div class="card border-0 shadow-sm">
+  <div class="card card-civic">
     <div class="table-responsive">
       <table class="table table-hover align-middle mb-0">
-        <thead class="table-dark">
+        <thead class="table-light">
           <tr>
-            <th style="width:60px;" class="text-center">Rank</th>
+            <th class="text-center w-60px">Rank</th>
             <th>Contributor</th>
             <th>Role</th>
             <th class="text-end">Points</th>
@@ -46,21 +45,20 @@
         </thead>
         <tbody>
           {% for u in top_users %}
-          <tr {% if u == user %}class="table-warning"{% endif %}>
+          <tr {% if u == user %}class="table-active"{% endif %}>
             <td class="text-center fw-bold">
-              {% if forloop.counter == 1 %}<span class="fs-4">🥇</span>
-              {% elif forloop.counter == 2 %}<span class="fs-4">🥈</span>
-              {% elif forloop.counter == 3 %}<span class="fs-4">🥉</span>
+              {% if forloop.counter == 1 %}🥇
+              {% elif forloop.counter == 2 %}🥈
+              {% elif forloop.counter == 3 %}🥉
               {% else %}{{ forloop.counter }}{% endif %}
             </td>
             <td>
               <a href="{% url 'accounts:user_detail' u.username %}" class="text-decoration-none text-dark">
                 <div class="d-flex align-items-center gap-2">
                   {% if u.avatar %}
-                  <img src="{{ u.avatar.url }}" alt="Avatar" class="rounded-circle" style="width:38px;height:38px;object-fit:cover;">
+                  <img src="{{ u.avatar.url }}" alt="Avatar" class="avatar-img avatar-38">
                   {% else %}
-                  <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center text-white fw-bold"
-                       style="width:38px;height:38px;font-size:.9rem;">
+                  <div class="avatar-placeholder avatar-38 fw-bold">
                     {{ u.display_name|first|upper }}
                   </div>
                   {% endif %}
@@ -92,4 +90,3 @@
 
 </div>
 {% endblock %}
-

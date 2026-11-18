@@ -1,411 +1,834 @@
-/* CivicConnect Design System
-   Modern SaaS & Civic Platform Styling
-   Primary: Deep Navy (#0f172a, #1e293b)
-   Secondary/Accent: Teal & Emerald (#0d9488, #10b981)
-*/
+/* ==========================================================================
+   CivicConnect Design System
+   A calm, minimal, trustworthy design system inspired by Linear & Stripe docs.
+   Single accent colour (#2563eb), no gradients, no hover lift animations.
+   ========================================================================== */
 
+/* --------------------------------------------------------------------------
+   1. Design Tokens & Bootstrap 5.3 Overrides
+   -------------------------------------------------------------------------- */
 :root {
-  --civic-navy-dark: #0f172a;
-  --civic-navy: #1e293b;
-  --civic-navy-light: #334155;
-  --civic-teal: #0d9488;
-  --civic-teal-dark: #0f766e;
-  --civic-teal-light: #ccfbf1;
-  --civic-emerald: #10b981;
-  --civic-emerald-light: #d1fae5;
-  --civic-amber: #f59e0b;
-  --civic-rose: #f43f5e;
-  --civic-bg: #f8fafc;
-  --civic-card-bg: #ffffff;
-  --civic-border: #e2e8f0;
-  --civic-text-main: #1e293b;
+  /* Core Palette */
+  --civic-bg: #ffffff;
+  --civic-surface: #f8fafc;
+  --civic-surface-subtle: #f1f5f9;
+  --civic-text: #0f172a;
   --civic-text-muted: #64748b;
-  --civic-shadow-sm: 0 1px 3px 0 rgba(15, 23, 42, 0.05);
-  --civic-shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.07), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
-  --civic-shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.04);
-  --civic-shadow-xl: 0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 8px 10px -6px rgba(15, 23, 42, 0.06);
+  --civic-border: #e2e8f0;
+  --civic-border-hover: #cbd5e1;
+
+  /* Single Accent Color */
+  --civic-accent: #2563eb;
+  --civic-accent-hover: #1d4ed8;
+  --civic-accent-subtle: #eff6ff;
+
+  /* Semantic Soft Status Tints (Light background + dark readable text) */
+  --status-neutral-bg: #f1f5f9;
+  --status-neutral-text: #475569;
+  --status-neutral-border: #e2e8f0;
+
+  --status-info-bg: #eff6ff;
+  --status-info-text: #1e40af;
+  --status-info-border: #bfdbfe;
+
+  --status-success-bg: #f0fdf4;
+  --status-success-text: #166534;
+  --status-success-border: #bbf7d0;
+
+  --status-warning-bg: #fffbeb;
+  --status-warning-text: #92400e;
+  --status-warning-border: #fde68a;
+
+  --status-danger-bg: #fef2f2;
+  --status-danger-text: #991b1b;
+  --status-danger-border: #fecaca;
+
+  --status-purple-bg: #faf5ff;
+  --status-purple-text: #6b21a8;
+  --status-purple-border: #e9d5ff;
+
+  /* Typography */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+
+  /* Elevation (Only subtle 1px-2px shadows on cards, none elsewhere) */
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-dropdown: 0 4px 12px rgba(15, 23, 42, 0.08);
+
+  /* Radius & Spacing */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+
+  /* Bootstrap 5.3 Overrides */
+  --bs-primary: #2563eb;
+  --bs-primary-rgb: 37, 99, 235;
+  --bs-link-color: #2563eb;
+  --bs-link-hover-color: #1d4ed8;
+  --bs-body-bg: #ffffff;
+  --bs-body-color: #0f172a;
+  --bs-body-font-family: var(--font-sans);
+  --bs-border-color: #e2e8f0;
+  --bs-border-radius: 8px;
+  --bs-border-radius-sm: 6px;
+  --bs-border-radius-lg: 12px;
+}
+
+/* --------------------------------------------------------------------------
+   2. Base & Typography
+   -------------------------------------------------------------------------- */
+*, *::before, *::after {
+  box-sizing: border-box;
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--font-sans);
   background-color: var(--civic-bg);
-  color: var(--civic-text-main);
+  color: var(--civic-text);
+  font-size: 1rem;
+  line-height: 1.6;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 main {
   flex: 1 0 auto;
 }
 
-/* Typography Enhancements */
 h1, h2, h3, h4, h5, h6 {
-  color: var(--civic-navy-dark);
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  color: var(--civic-text);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.3;
 }
 
-/* Custom Navbar */
+h1 { font-size: 2.25rem; }
+h2 { font-size: 1.75rem; }
+h3 { font-size: 1.375rem; }
+h4 { font-size: 1.125rem; }
+h5 { font-size: 1rem; }
+h6 { font-size: 0.875rem; }
+
+p {
+  margin-bottom: 1rem;
+}
+
+a {
+  color: var(--civic-accent);
+  text-decoration: none;
+  transition: color 150ms ease;
+}
+
+a:hover {
+  color: var(--civic-accent-hover);
+}
+
+/* Transitions: color and border only, respecting prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   3. Navbar (Clean, white surface with hairline bottom border)
+   -------------------------------------------------------------------------- */
 .civic-navbar {
-  background-color: var(--civic-navy-dark);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  padding-top: 0.85rem;
-  padding-bottom: 0.85rem;
-  transition: all 0.3s ease;
+  background-color: #ffffff;
+  border-bottom: 1px solid var(--civic-border);
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+  z-index: 1030;
 }
 
 .civic-navbar .navbar-brand {
-  font-size: 1.35rem;
-  font-weight: 800;
-  color: #ffffff;
-  letter-spacing: -0.03em;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--civic-text);
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  letter-spacing: -0.02em;
 }
 
-.civic-navbar .navbar-brand .brand-badge {
-  background: linear-gradient(135deg, var(--civic-teal), var(--civic-emerald));
+.civic-navbar .brand-icon {
+  width: 28px;
+  height: 28px;
+  background-color: var(--civic-accent);
   color: #ffffff;
-  padding: 0.35rem 0.55rem;
-  border-radius: 0.5rem;
-  font-size: 1rem;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
 }
 
 .civic-navbar .nav-link {
-  color: #cbd5e1;
-  font-weight: 500;
-  font-size: 0.95rem;
-  padding: 0.5rem 0.9rem;
-  border-radius: 0.375rem;
-  transition: color 0.2s ease, background-color 0.2s ease;
-}
-
-.civic-navbar .nav-link:hover,
-.civic-navbar .nav-link.active {
-  color: #ffffff;
-  background-color: rgba(255, 255, 255, 0.08);
-}
-
-/* Buttons */
-.btn-civic-primary {
-  background-color: var(--civic-navy-dark);
-  color: #ffffff;
-  border: 1px solid var(--civic-navy);
-  font-weight: 600;
-  border-radius: 0.5rem;
-  padding: 0.55rem 1.25rem;
-  transition: all 0.2s ease;
-}
-
-.btn-civic-primary:hover {
-  background-color: var(--civic-navy);
-  color: #ffffff;
-  transform: translateY(-1px);
-  box-shadow: var(--civic-shadow-md);
-}
-
-.btn-civic-teal {
-  background-color: var(--civic-teal);
-  color: #ffffff;
-  border: none;
-  font-weight: 600;
-  border-radius: 0.5rem;
-  padding: 0.55rem 1.25rem;
-  transition: all 0.2s ease;
-}
-
-.btn-civic-teal:hover {
-  background-color: var(--civic-teal-dark);
-  color: #ffffff;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.35);
-}
-
-.btn-outline-civic-teal {
-  border: 2px solid var(--civic-teal);
-  color: var(--civic-teal);
-  font-weight: 600;
-  border-radius: 0.5rem;
-  padding: 0.5rem 1.2rem;
-  transition: all 0.2s ease;
-  background-color: transparent;
-}
-
-.btn-outline-civic-teal:hover {
-  background-color: var(--civic-teal);
-  color: #ffffff;
-  transform: translateY(-1px);
-}
-
-/* Cards & Elevate Effect */
-.card-civic {
-  background: var(--civic-card-bg);
-  border: 1px solid var(--civic-border);
-  border-radius: 0.85rem;
-  box-shadow: var(--civic-shadow-sm);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-  overflow: hidden;
-}
-
-.card-civic:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--civic-shadow-lg);
-  border-color: #cbd5e1;
-}
-
-.card-civic-flat {
-  background: var(--civic-card-bg);
-  border: 1px solid var(--civic-border);
-  border-radius: 0.85rem;
-  box-shadow: var(--civic-shadow-sm);
-}
-
-/* Hero Section */
-.hero-banner {
-  background: linear-gradient(135deg, #0b1329 0%, #0f172a 50%, #0d2836 100%);
-  color: #ffffff;
-  position: relative;
-  overflow: hidden;
-  padding: 5rem 0 5.5rem 0;
-}
-
-.hero-banner::before {
-  content: '';
-  position: absolute;
-  top: -20%;
-  right: -10%;
-  width: 500px;
-  height: 500px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(13, 148, 136, 0.25) 0%, rgba(15, 23, 42, 0) 70%);
-  pointer-events: none;
-}
-
-.hero-banner::after {
-  content: '';
-  position: absolute;
-  bottom: -20%;
-  left: -10%;
-  width: 450px;
-  height: 450px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, rgba(15, 23, 42, 0) 70%);
-  pointer-events: none;
-}
-
-/* Stat Cards */
-.stat-card {
-  padding: 1.5rem;
-  border-radius: 0.85rem;
-  background: #ffffff;
-  border: 1px solid var(--civic-border);
-  box-shadow: var(--civic-shadow-sm);
-  display: flex;
-  align-items: center;
-  gap: 1.25rem;
-  transition: all 0.2s ease;
-}
-
-.stat-card:hover {
-  box-shadow: var(--civic-shadow-md);
-  border-color: #cbd5e1;
-}
-
-.stat-icon {
-  width: 54px;
-  height: 54px;
-  border-radius: 0.75rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.6rem;
-}
-
-.stat-icon-teal {
-  background-color: var(--civic-teal-light);
-  color: var(--civic-teal-dark);
-}
-
-.stat-icon-navy {
-  background-color: #e2e8f0;
-  color: var(--civic-navy);
-}
-
-.stat-icon-emerald {
-  background-color: var(--civic-emerald-light);
-  color: #065f46;
-}
-
-.stat-icon-amber {
-  background-color: #fef3c7;
-  color: #92400e;
-}
-
-/* Badges */
-.badge-role {
-  padding: 0.35rem 0.65rem;
-  font-weight: 600;
-  font-size: 0.75rem;
-  letter-spacing: 0.02em;
-  border-radius: 2rem;
-  text-transform: uppercase;
-}
-
-.badge-student {
-  background-color: #e0f2fe;
-  color: #0369a1;
-}
-
-.badge-university {
-  background-color: #dcfce7;
-  color: #15803d;
-}
-
-.badge-industry {
-  background-color: #f3e8ff;
-  color: #7e22ce;
-}
-
-.badge-admin {
-  background-color: #ffe4e6;
-  color: #be123c;
-}
-
-/* Dashboard Layout */
-.dashboard-container {
-  padding: 2rem 0;
-}
-
-.dashboard-sidebar {
-  background: #ffffff;
-  border: 1px solid var(--civic-border);
-  border-radius: 0.85rem;
-  padding: 1.5rem 1rem;
-  box-shadow: var(--civic-shadow-sm);
-}
-
-.sidebar-nav-link {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
   color: var(--civic-text-muted);
   font-weight: 500;
-  border-radius: 0.5rem;
-  text-decoration: none;
-  transition: all 0.2s ease;
-  margin-bottom: 0.35rem;
+  font-size: 0.875rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm);
+  transition: color 150ms ease, background-color 150ms ease;
+  position: relative;
 }
 
-.sidebar-nav-link i {
-  font-size: 1.2rem;
+.civic-navbar .nav-link:hover {
+  color: var(--civic-text);
+  background-color: var(--civic-surface);
 }
 
-.sidebar-nav-link:hover {
-  background-color: #f1f5f9;
-  color: var(--civic-navy-dark);
-}
-
-.sidebar-nav-link.active {
-  background-color: var(--civic-teal-light);
-  color: var(--civic-teal-dark);
+.civic-navbar .nav-link.active {
+  color: var(--civic-accent);
   font-weight: 600;
 }
 
-/* Challenge Image Thumbnails */
+.civic-navbar .nav-link.active::after {
+  content: '';
+  position: absolute;
+  bottom: -0.75rem;
+  left: 0.75rem;
+  right: 0.75rem;
+  height: 2px;
+  background-color: var(--civic-accent);
+}
+
+@media (max-width: 991.98px) {
+  .civic-navbar .nav-link.active::after {
+    display: none;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   4. Buttons (Primary, Secondary, Ghost with visible focus rings)
+   -------------------------------------------------------------------------- */
+.btn {
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-md);
+  line-height: 1.4;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+}
+
+.btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+}
+
+.btn-primary,
+.btn-civic-primary,
+.btn-civic-teal {
+  background-color: var(--civic-accent);
+  border: 1px solid var(--civic-accent);
+  color: #ffffff;
+}
+
+.btn-primary:hover,
+.btn-civic-primary:hover,
+.btn-civic-teal:hover {
+  background-color: var(--civic-accent-hover);
+  border-color: var(--civic-accent-hover);
+  color: #ffffff;
+}
+
+.btn-outline-secondary,
+.btn-outline-civic-teal,
+.btn-secondary-flat {
+  background-color: #ffffff;
+  border: 1px solid var(--civic-border);
+  color: var(--civic-text);
+}
+
+.btn-outline-secondary:hover,
+.btn-outline-civic-teal:hover,
+.btn-secondary-flat:hover {
+  background-color: var(--civic-surface);
+  border-color: var(--civic-border-hover);
+  color: var(--civic-text);
+}
+
+.btn-ghost {
+  background-color: transparent;
+  border: 1px solid transparent;
+  color: var(--civic-text-muted);
+}
+
+.btn-ghost:hover {
+  background-color: var(--civic-surface);
+  color: var(--civic-text);
+}
+
+.btn-sm {
+  font-size: 0.8125rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius-sm);
+}
+
+.btn-lg {
+  font-size: 1rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius-md);
+}
+
+/* --------------------------------------------------------------------------
+   5. Cards (White, 1px border, no hover lift, subtle border change if interactive)
+   -------------------------------------------------------------------------- */
+.card,
+.card-civic,
+.card-civic-flat {
+  background-color: #ffffff;
+  border: 1px solid var(--civic-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  transition: border-color 150ms ease;
+  overflow: hidden;
+}
+
+.card:hover,
+.card-civic:hover {
+  transform: none; /* Explicitly disabled hover lift */
+}
+
+.card-interactive {
+  cursor: pointer;
+}
+
+.card-interactive:hover {
+  border-color: var(--civic-border-hover);
+}
+
+.card-header {
+  background-color: transparent;
+  border-bottom: 1px solid var(--civic-border);
+  padding: 1rem 1.25rem;
+  font-weight: 600;
+}
+
+.card-body {
+  padding: 1.25rem;
+}
+
+.card-footer {
+  background-color: transparent;
+  border-top: 1px solid var(--civic-border);
+  padding: 0.875rem 1.25rem;
+}
+
+/* --------------------------------------------------------------------------
+   6. Soft-Tint Badges & Status Chips (Single consistent system)
+   -------------------------------------------------------------------------- */
+.badge {
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  line-height: 1.2;
+}
+
+/* Status variants */
+.badge-status-approved,
+.badge-approved {
+  background-color: var(--status-info-bg);
+  color: var(--status-info-text);
+  border: 1px solid var(--status-info-border);
+}
+
+.badge-status-in_progress,
+.badge-in-progress {
+  background-color: var(--status-success-bg);
+  color: var(--status-success-text);
+  border: 1px solid var(--status-success-border);
+}
+
+.badge-status-solved,
+.badge-solved {
+  background-color: var(--status-success-bg);
+  color: var(--status-success-text);
+  border: 1px solid var(--status-success-border);
+}
+
+.badge-status-pilot,
+.badge-pilot {
+  background-color: var(--status-purple-bg);
+  color: var(--status-purple-text);
+  border: 1px solid var(--status-purple-border);
+}
+
+.badge-status-pending,
+.badge-pending {
+  background-color: var(--status-warning-bg);
+  color: var(--status-warning-text);
+  border: 1px solid var(--status-warning-border);
+}
+
+.badge-status-rejected,
+.badge-rejected {
+  background-color: var(--status-danger-bg);
+  color: var(--status-danger-text);
+  border: 1px solid var(--status-danger-border);
+}
+
+/* Severity variants */
+.badge-severity-critical {
+  background-color: var(--status-danger-bg);
+  color: var(--status-danger-text);
+  border: 1px solid var(--status-danger-border);
+}
+
+.badge-severity-high {
+  background-color: var(--status-warning-bg);
+  color: var(--status-warning-text);
+  border: 1px solid var(--status-warning-border);
+}
+
+.badge-severity-medium {
+  background-color: var(--status-info-bg);
+  color: var(--status-info-text);
+  border: 1px solid var(--status-info-border);
+}
+
+.badge-severity-low {
+  background-color: var(--status-success-bg);
+  color: var(--status-success-text);
+  border: 1px solid var(--status-success-border);
+}
+
+/* Role variants */
+.badge-role {
+  text-transform: capitalize;
+  font-weight: 500;
+}
+
+.badge-role-student,
+.badge-student {
+  background-color: var(--status-info-bg);
+  color: var(--status-info-text);
+  border: 1px solid var(--status-info-border);
+}
+
+.badge-role-university,
+.badge-university {
+  background-color: var(--status-success-bg);
+  color: var(--status-success-text);
+  border: 1px solid var(--status-success-border);
+}
+
+.badge-role-industry,
+.badge-industry {
+  background-color: var(--status-purple-bg);
+  color: var(--status-purple-text);
+  border: 1px solid var(--status-purple-border);
+}
+
+.badge-role-admin,
+.badge-admin {
+  background-color: var(--status-danger-bg);
+  color: var(--status-danger-text);
+  border: 1px solid var(--status-danger-border);
+}
+
+/* Fallback badge overrides for Bootstrap defaults */
+.badge.bg-primary {
+  background-color: var(--status-info-bg) !important;
+  color: var(--status-info-text) !important;
+  border: 1px solid var(--status-info-border);
+}
+
+.badge.bg-success {
+  background-color: var(--status-success-bg) !important;
+  color: var(--status-success-text) !important;
+  border: 1px solid var(--status-success-border);
+}
+
+.badge.bg-warning {
+  background-color: var(--status-warning-bg) !important;
+  color: var(--status-warning-text) !important;
+  border: 1px solid var(--status-warning-border);
+}
+
+.badge.bg-danger {
+  background-color: var(--status-danger-bg) !important;
+  color: var(--status-danger-text) !important;
+  border: 1px solid var(--status-danger-border);
+}
+
+.badge.bg-secondary,
+.badge.bg-light {
+  background-color: var(--status-neutral-bg) !important;
+  color: var(--status-neutral-text) !important;
+  border: 1px solid var(--status-neutral-border);
+}
+
+/* --------------------------------------------------------------------------
+   7. Monochrome & Accent Icons (No rainbow icons)
+   -------------------------------------------------------------------------- */
+.bi, i[class*="bi-"] {
+  color: inherit;
+  vertical-align: -0.125em;
+}
+
+.icon-muted {
+  color: var(--civic-text-muted) !important;
+}
+
+.icon-accent {
+  color: var(--civic-accent) !important;
+}
+
+/* --------------------------------------------------------------------------
+   8. Forms & Inputs
+   -------------------------------------------------------------------------- */
+.form-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--civic-text);
+  margin-bottom: 0.375rem;
+}
+
+.form-control,
+.form-select {
+  font-size: 0.875rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--civic-border);
+  padding: 0.5rem 0.75rem;
+  color: var(--civic-text);
+  background-color: #ffffff;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--civic-accent);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  outline: none;
+}
+
+.form-text {
+  font-size: 0.8125rem;
+  color: var(--civic-text-muted);
+  margin-top: 0.25rem;
+}
+
+/* Segmented Control / Role Selector */
+.role-segmented-control {
+  display: flex;
+  background-color: var(--civic-surface);
+  border: 1px solid var(--civic-border);
+  border-radius: var(--radius-md);
+  padding: 4px;
+  gap: 4px;
+}
+
+.role-segmented-option {
+  flex: 1;
+  text-align: center;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  color: var(--civic-text-muted);
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.role-segmented-option:hover {
+  color: var(--civic-text);
+}
+
+.role-segmented-option.active {
+  background-color: #ffffff;
+  color: var(--civic-text);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+}
+
+/* --------------------------------------------------------------------------
+   9. Page Header Pattern (Breadcrumb, H1, Description, Action)
+   -------------------------------------------------------------------------- */
+.page-header {
+  padding-bottom: 1.5rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--civic-border);
+}
+
+.page-header-title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: var(--civic-text);
+  margin-bottom: 0.25rem;
+}
+
+.page-header-desc {
+  font-size: 0.9375rem;
+  color: var(--civic-text-muted);
+  margin-bottom: 0;
+}
+
+/* --------------------------------------------------------------------------
+   10. Tables & Lists
+   -------------------------------------------------------------------------- */
+.table {
+  color: var(--civic-text);
+  font-size: 0.875rem;
+  margin-bottom: 0;
+}
+
+.table th {
+  font-weight: 600;
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--civic-text-muted);
+  background-color: var(--civic-surface);
+  border-bottom: 1px solid var(--civic-border);
+  padding: 0.75rem 1rem;
+}
+
+.table td {
+  padding: 0.875rem 1rem;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--civic-surface-subtle);
+}
+
+.table tbody tr:hover {
+  background-color: var(--civic-surface);
+}
+
+/* --------------------------------------------------------------------------
+   11. Flat Stat Tiles (Dashboards & Home)
+   -------------------------------------------------------------------------- */
+.stat-tile {
+  background-color: #ffffff;
+  border: 1px solid var(--civic-border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  box-shadow: var(--shadow-card);
+}
+
+.stat-tile-number {
+  font-size: 2rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: var(--civic-text);
+  margin-bottom: 0.25rem;
+}
+
+.stat-tile-label {
+  font-size: 0.8125rem;
+  color: var(--civic-text-muted);
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+/* --------------------------------------------------------------------------
+   12. Home & Section Styles (Clean white hero, no blobs, no gradients)
+   -------------------------------------------------------------------------- */
+.hero-clean {
+  background-color: #ffffff;
+  border-bottom: 1px solid var(--civic-border);
+  padding: 4.5rem 0 3.5rem 0;
+}
+
+.hero-clean h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--civic-text);
+  margin-bottom: 1rem;
+}
+
+.hero-clean .hero-subtitle {
+  font-size: 1.125rem;
+  color: var(--civic-text-muted);
+  max-width: 640px;
+  margin-bottom: 1.75rem;
+}
+
+.section-clean {
+  padding: 3.5rem 0;
+}
+
+.step-card {
+  background-color: var(--civic-surface);
+  border: 1px solid var(--civic-border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  height: 100%;
+}
+
+.step-number {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--civic-accent);
+  margin-bottom: 0.5rem;
+}
+
+/* Challenge card thumbnail placeholder without gradient */
 .challenge-card-img {
-  height: 190px;
+  height: 180px;
   width: 100%;
   object-fit: cover;
 }
 
 .challenge-placeholder-img {
-  height: 190px;
+  height: 180px;
   width: 100%;
-  background: linear-gradient(135deg, #1e293b 0%, #0d9488 100%);
+  background-color: var(--civic-surface);
+  border-bottom: 1px solid var(--civic-border);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 3rem;
+  color: var(--civic-text-muted);
+  font-size: 2.5rem;
 }
 
-/* Upvote Button */
-.btn-upvote {
+/* --------------------------------------------------------------------------
+   13. Footer (Light surface with top border, simple 3 columns)
+   -------------------------------------------------------------------------- */
+.civic-footer {
+  background-color: var(--civic-surface);
+  color: var(--civic-text-muted);
+  padding: 3rem 0 2rem 0;
+  border-top: 1px solid var(--civic-border);
+  font-size: 0.875rem;
+}
+
+.civic-footer h5 {
+  color: var(--civic-text);
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  letter-spacing: -0.01em;
+}
+
+.civic-footer ul {
+  list-style: none;
+  padding-left: 0;
+  margin-bottom: 0;
+}
+
+.civic-footer li {
+  margin-bottom: 0.5rem;
+}
+
+.civic-footer a {
+  color: var(--civic-text-muted);
+  transition: color 150ms ease;
+}
+
+.civic-footer a:hover {
+  color: var(--civic-text);
+}
+
+.civic-footer-bottom {
+  border-top: 1px solid var(--civic-border);
+  margin-top: 2.5rem;
+  padding-top: 1.25rem;
+  font-size: 0.8125rem;
+  color: var(--civic-text-muted);
+}
+
+/* --------------------------------------------------------------------------
+   14. Reusable Helpers (Eliminates inline styles)
+   -------------------------------------------------------------------------- */
+.avatar-img {
+  object-fit: cover;
+  border-radius: 50%;
+  border: 1px solid var(--civic-border);
+}
+
+.avatar-placeholder {
+  border-radius: 50%;
+  background-color: var(--civic-surface-subtle);
+  color: var(--civic-text-muted);
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.45rem 0.9rem;
-  border-radius: 0.5rem;
-  border: 1px solid var(--civic-border);
-  background: #ffffff;
-  color: var(--civic-navy);
+  justify-content: center;
   font-weight: 600;
-  transition: all 0.2s ease;
 }
 
-.btn-upvote:hover {
-  background-color: #f8fafc;
-  border-color: var(--civic-teal);
-  color: var(--civic-teal);
+.avatar-sm { width: 32px; height: 32px; font-size: 0.75rem; }
+.avatar-md { width: 40px; height: 40px; font-size: 0.875rem; }
+.avatar-38 { width: 38px; height: 38px; font-size: 0.875rem; }
+.avatar-lg { width: 64px; height: 64px; font-size: 1.25rem; }
+.avatar-xl { width: 110px; height: 110px; font-size: 2.25rem; }
+
+.text-xs { font-size: 0.75rem; }
+.badge-xs { font-size: 0.65rem; }
+.badge-sm { font-size: 0.7rem; }
+.w-60px { width: 60px; }
+
+.auth-card-wrapper {
+  max-width: 440px;
+  margin: 0 auto;
 }
 
-.btn-upvote.active {
-  background-color: var(--civic-teal-light);
-  border-color: var(--civic-teal);
-  color: var(--civic-teal-dark);
+.auth-card-wrapper-wide {
+  max-width: 520px;
+  margin: 0 auto;
 }
 
-/* Progress bar modern style */
 .progress-civic {
-  height: 8px;
-  border-radius: 1rem;
-  background-color: #e2e8f0;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background-color: var(--civic-surface-subtle);
   overflow: hidden;
 }
 
 .progress-civic .progress-bar {
-  background: linear-gradient(90deg, var(--civic-teal) 0%, var(--civic-emerald) 100%);
-  border-radius: 1rem;
+  background-color: var(--civic-accent);
+  border-radius: var(--radius-full);
 }
 
-/* Footer */
-.civic-footer {
-  background-color: var(--civic-navy-dark);
-  color: #94a3b8;
-  padding: 4rem 0 2rem 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+.map-wrapper {
+  position: relative;
+  isolation: isolate;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--civic-border);
 }
 
-.civic-footer h5 {
-  color: #ffffff;
-  font-size: 1.05rem;
-  margin-bottom: 1.25rem;
+.map-canvas {
+  width: 100%;
+  height: 100%;
 }
 
-.civic-footer a {
-  color: #94a3b8;
-  text-decoration: none;
-  transition: color 0.2s ease;
+.btn-map-control {
+  font-size: 0.78rem;
 }
 
-.civic-footer a:hover {
-  color: #ffffff;
+.z-index-picker {
+  z-index: 1020;
 }
 
-.civic-footer-bottom {
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  margin-top: 3rem;
-  padding-top: 1.5rem;
-  font-size: 0.875rem;
+.map-picker-h { height: 320px; }
+.map-view-h { height: 72vh; min-height: 480px; }
+.map-mini-h { height: 180px; }
+
+.map-pin-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
 }
 
-/* Responsive tweaks */
-@media (max-width: 991.98px) {
-  .hero-banner {
-    padding: 3.5rem 0;
-  }
-}
-
+.map-pin-critical, .legend-dot-critical { background-color: #dc2626 !important; }
+.map-pin-high, .legend-dot-high { background-color: #ea580c !important; }
+.map-pin-medium, .legend-dot-medium { background-color: #2563eb !important; }
+.map-pin-low, .legend-dot-low { background-color: #16a34a !important; }
+.map-pin-default, .legend-dot-default { background-color: #64748b !important; }

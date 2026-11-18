@@ -115,14 +115,14 @@
                       <a href="{% url 'challenges:detail' ch.pk %}" class="text-decoration-none text-dark fw-semibold small hover-teal">
                         {{ ch.title|truncatechars:35 }}
                       </a>
-                      <div class="text-muted" style="font-size: 0.75rem;">{{ ch.category.name }} &bull; {{ ch.location }}</div>
+                      <div class="text-muted text-xs">{{ ch.category.name }} &bull; {{ ch.location }}</div>
                     </td>
                     <td>
                       <span class="small fw-semibold text-dark">{{ ch.creator.display_name }}</span>
-                      <div class="badge badge-role {{ ch.creator.get_role_badge_class }}" style="font-size: 0.65rem;">{{ ch.creator.get_role_display }}</div>
+                      <div class="badge badge-role {{ ch.creator.get_role_badge_class }} badge-xs">{{ ch.creator.get_role_display }}</div>
                     </td>
                     <td>
-                      <span class="badge {{ ch.get_severity_badge_class }}" style="font-size: 0.7rem;">{{ ch.get_problem_severity_display }}</span>
+                      <span class="badge {{ ch.get_severity_badge_class }} badge-sm">{{ ch.get_problem_severity_display }}</span>
                     </td>
                     <td class="small text-muted">{{ ch.created_at|date:"M d, Y" }}</td>
                     <td class="text-end">
@@ -177,7 +177,7 @@
                     </a>
                   </td>
                   <td class="small text-muted">{{ ch.creator.username }}</td>
-                  <td><span class="badge {{ ch.get_status_badge_class }}" style="font-size: 0.65rem;">{{ ch.get_status_display }}</span></td>
+                  <td><span class="badge {{ ch.get_status_badge_class }} badge-xs">{{ ch.get_status_display }}</span></td>
                   <td class="small fw-bold text-teal">{{ ch.votes_count }}</td>
                   <td class="text-end">
                     <a href="{% url 'challenges:detail' ch.pk %}" class="btn btn-sm btn-outline-secondary py-0 px-2 small">Open</a>
@@ -202,9 +202,9 @@
             <div class="d-flex align-items-center justify-content-between p-2 rounded-2 bg-light border small">
               <div>
                 <a href="{% url 'accounts:user_detail' u.username %}" class="fw-semibold text-dark text-decoration-none hover-teal">{{ u.display_name }}</a>
-                <div class="text-muted" style="font-size: 0.75rem;">@{{ u.username }} &bull; {{ u.location|default:"Global" }}</div>
+                <div class="text-muted text-xs">@{{ u.username }} &bull; {{ u.location|default:"Global" }}</div>
               </div>
-              <span class="badge badge-role {{ u.get_role_badge_class }}" style="font-size: 0.65rem;">{{ u.get_role_display }}</span>
+              <span class="badge badge-role {{ u.get_role_badge_class }} badge-xs">{{ u.get_role_display }}</span>
             </div>
           {% endfor %}
         </div>

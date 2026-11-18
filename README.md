@@ -75,6 +75,32 @@ CivicConnect connects four key stakeholders into an active problem-solving netwo
 - **Frontend:** HTML5, CSS3, Bootstrap 5.3, Bootstrap Icons
 - **Visualizations:** Chart.js 4.4, Leaflet.js 1.9.4, Leaflet.markercluster 1.5.3
 
+### Frontend Design System
+
+CivicConnect uses a **token-based design system** (`static/css/style.css`) inspired by Linear and Stripe docs — calm, minimal, trustworthy.
+
+**Design tokens (`:root` CSS variables):**
+| Token | Value | Usage |
+|---|---|---|
+| `--civic-bg` | `#ffffff` | Page background |
+| `--civic-surface` | `#f8fafc` | Card/section surfaces |
+| `--civic-text` | `#0f172a` | Primary text |
+| `--civic-text-muted` | `#64748b` | Secondary text |
+| `--civic-border` | `#e2e8f0` | Borders |
+| `--civic-accent` | `#2563eb` | Single accent (buttons, links) |
+| `--civic-accent-hover` | `#1d4ed8` | Accent hover state |
+
+**Rules:** 0 `linear-gradient`, 0 `radial-gradient`, 0 `backdrop-filter`, 0 `translateY` hover lifts. Max 5 inline `style=` attributes in all templates (only dynamic progress bar widths).
+
+### Leaflet (Vendored Locally)
+
+Leaflet 1.9.4 and Leaflet.markercluster 1.5.3 are **vendored locally** (no CDN dependency):
+- CSS/JS: `static/vendor/leaflet/` and `static/vendor/markercluster/`
+- Marker images: `static/vendor/leaflet/images/`
+- Loaded via `templates/partials/leaflet_assets.html` using `{% static %}` tags
+
+`SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'` is set in `settings.py` so tile servers receive a valid Referer header (fixes grey tiles on some browsers).
+
 ---
 
 ## 4. Project Directory Structure

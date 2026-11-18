@@ -167,7 +167,7 @@ class HomePageTests(BaseTestCase):
         response = self.client.get(reverse('home'))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "CivicConnect")
-        self.assertContains(response, "Together, We Can")
+        self.assertContains(response, "Crowdsourcing Real-World Societal Challenges")
 
     def test_home_page_unauthenticated(self):
         """Home page must be accessible without login."""
@@ -745,6 +745,42 @@ class MapViewTests(BaseTestCase):
         # Django's json_script must escape < to \u003C so malicious tags cannot break out
         self.assertNotIn('</script><img', content)
         self.assertIn(r'\u003C/script\u003E\u003Cimg', content)
+
+    def test_map_referrer_policy_header(self):
+        """Asserts the Referrer-Policy header on /challenges/map/ is strict-origin-when-cross-origin."""
+        response = self.client.get(reverse('challenges:map'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers.get('Referrer-Policy'), 'strict-origin-when-cross-origin')
+
+    def test_map_pages_reference_local_static_leaflet_no_unpkg(self):
+        """Asserts that all map-enabled pages use local vendored Leaflet assets and have no unpkg URLs."""
+        ch = Challenge.objects.create(
+            title="Mapped Asset Challenge",
+            category=self.category,
+            creator=self.student,
+            location="Denver, CO",
+            latitude=39.7392,
+            longitude=-104.9903,
+            status="approved",
+            problem_severity="medium",
+            description="Testing local vendored map assets.",
+            expected_impact="High reliability.",
+        )
+
+        urls = [
+            reverse('challenges:map'),
+            reverse('challenges:detail', kwargs={'pk': ch.pk}),
+        ]
+        # Login to access challenge create page
+        self.client.login(username='student1', password='testpass99')
+        urls.append(reverse('challenges:create'))
+
+        for url in urls:
+            res = self.client.get(url)
+            self.assertEqual(res.status_code, 200, f"Failed for {url}")
+            content = res.content.decode('utf-8')
+            self.assertIn('vendor/leaflet/leaflet.js', content, f"Missing local leaflet.js in {url}")
+            self.assertNotIn('unpkg.com', content, f"Found unpkg.com URL in {url}")
 
 
 class CoordinateValidationTests(BaseTestCase):
