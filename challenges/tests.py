@@ -16,7 +16,6 @@ from django.contrib.auth import get_user_model
 from challenges.models import Category, Challenge, Vote, Comment
 from solutions.models import Solution
 from collaborations.models import Project, ProjectMembership
-from partnerships.models import PartnershipRequest
 
 User = get_user_model()
 
@@ -30,40 +29,40 @@ class BaseTestCase(TestCase):
         self.category = Category.objects.create(
             name="Environment", slug="environment", icon="bi-tree"
         )
-        # Student (auto-verified)
+        # Citizen / Student (auto-verified)
         self.student = User.objects.create_user(
             username="student1", email="s@test.com",
-            password="testpass99", role="student",
+            password="testpass99", role="citizen",
             first_name="Jane", last_name="Doe"
         )
-        # Second student
+        # Second citizen
         self.student2 = User.objects.create_user(
             username="student2", email="s2@test.com",
-            password="testpass99", role="student"
+            password="testpass99", role="citizen"
         )
-        # University (not verified by default)
+        # Organization (university - not verified by default)
         self.univ = User.objects.create_user(
             username="univ1", email="u@test.com",
-            password="testpass99", role="university",
-            institution_name="State Uni"
+            password="testpass99", role="organization",
+            org_type="university", institution_name="State Uni"
         )
-        # Verified university
+        # Verified organization (university)
         self.univ_verified = User.objects.create_user(
             username="univ2", email="u2@test.com",
-            password="testpass99", role="university",
-            institution_name="MIT East", is_verified=True
+            password="testpass99", role="organization",
+            org_type="university", institution_name="MIT East", is_verified=True
         )
-        # Industry (not verified)
+        # Organization (industry - not verified)
         self.industry = User.objects.create_user(
             username="ind1", email="i@test.com",
-            password="testpass99", role="industry",
-            institution_name="Acme Corp"
+            password="testpass99", role="organization",
+            org_type="industry", institution_name="Acme Corp"
         )
-        # Verified industry
+        # Verified organization (industry)
         self.industry_verified = User.objects.create_user(
             username="ind2", email="i2@test.com",
-            password="testpass99", role="industry",
-            institution_name="BigCo", is_verified=True
+            password="testpass99", role="organization",
+            org_type="industry", institution_name="BigCo", is_verified=True
         )
         # Admin / superuser
         self.admin = User.objects.create_superuser(
@@ -102,9 +101,9 @@ class BaseTestCase(TestCase):
 # ===========================================================================
 
 class RegistrationTests(BaseTestCase):
-    """Registration form must reject role=admin and enforce min 8-char password."""
+    """Registration form must reject role=admin, support citizen and organization with org_type."""
 
-    def _register(self, role, password="ValidPass1!", institution="Test Org"):
+    def _register(self, role, password="ValidPass1!", institution="Test Org", org_type=None):
         data = {
             'username': f'newuser_{role}',
             'email': f'{role}@test.com',
@@ -115,9 +114,9 @@ class RegistrationTests(BaseTestCase):
             'role': role,
             'location': 'Test City',
         }
-        # university and industry require institution_name
-        if role in ('university', 'industry'):
+        if role in ('organization', 'university', 'industry'):
             data['institution_name'] = institution
+            data['org_type'] = org_type or ('university' if role == 'university' else ('industry' if role == 'industry' else 'university'))
         return self.client.post(reverse('accounts:register'), data)
 
     def test_registration_rejects_admin_role(self):
@@ -126,34 +125,40 @@ class RegistrationTests(BaseTestCase):
         self.assertFalse(User.objects.filter(username='newuser_admin').exists(),
                          "Admin role user must NOT be created via public registration.")
 
-    def test_registration_accepts_student_role(self):
+    def test_registration_accepts_citizen_role(self):
+        response = self._register('citizen')
+        self.assertTrue(User.objects.filter(username='newuser_citizen').exists())
+
+    def test_registration_accepts_student_role_legacy(self):
         response = self._register('student')
         self.assertTrue(User.objects.filter(username='newuser_student').exists())
 
-    def test_registration_accepts_university_role(self):
+    def test_registration_accepts_organization_role(self):
+        response = self._register('organization', org_type='university')
+        self.assertTrue(User.objects.filter(username='newuser_organization').exists())
+        user = User.objects.get(username='newuser_organization')
+        self.assertEqual(user.role, 'organization')
+        self.assertEqual(user.org_type, 'university')
+
+    def test_registration_accepts_university_role_legacy(self):
         response = self._register('university')
         self.assertTrue(User.objects.filter(username='newuser_university').exists())
 
-    def test_registration_accepts_industry_role(self):
+    def test_registration_accepts_industry_role_legacy(self):
         response = self._register('industry')
         self.assertTrue(User.objects.filter(username='newuser_industry').exists())
 
-    def test_student_auto_verified_on_registration(self):
-        """Students and admins must be auto-verified; org roles are not."""
+    def test_citizen_auto_verified_on_registration(self):
+        """Citizens and admins must be auto-verified; org roles are not."""
         user = User.objects.create_user(
-            username='fresh_student', password='pass12345', role='student'
+            username='fresh_citizen', password='pass12345', role='citizen'
         )
         self.assertTrue(user.is_verified)
 
-    def test_university_not_auto_verified(self):
+    def test_organization_not_auto_verified(self):
         user = User.objects.create_user(
-            username='fresh_univ', password='pass12345', role='university'
-        )
-        self.assertFalse(user.is_verified)
-
-    def test_industry_not_auto_verified(self):
-        user = User.objects.create_user(
-            username='fresh_ind', password='pass12345', role='industry'
+            username='fresh_org', password='pass12345', role='organization',
+            org_type='university', institution_name='MIT'
         )
         self.assertFalse(user.is_verified)
 
@@ -487,89 +492,71 @@ class ProjectTests(BaseTestCase):
 
 
 # ===========================================================================
-# 9. PARTNERSHIP TESTS
+# 9. ORGANIZATION VERIFICATION & ROLE TESTS
 # ===========================================================================
 
-class PartnershipTests(BaseTestCase):
-    def test_unverified_industry_cannot_send_partnership_request(self):
-        self.client.login(username="ind1", password="testpass99")
+class OrganizationVerificationTests(BaseTestCase):
+    def test_unverified_organization_cannot_submit_solution(self):
+        challenge = self._make_challenge(status="approved")
+        self.client.login(username="univ1", password="testpass99")
         response = self.client.post(
-            reverse('partnerships:request_create'),
+            reverse('solutions:create', kwargs={'challenge_id': challenge.pk}),
             {
-                'target_organization': self.univ_verified.pk,
-                'partnership_type': 'technical',
-                'message': 'Let us partner!',
+                'title': 'Org Solution',
+                'description': 'Description here.',
+                'proposed_implementation': 'Implementation here.',
+                'expected_outcome': 'Outcome here.',
+                'required_resources': 'Resources here.',
+                'estimated_duration': '2 Months',
             }
         )
         self.assertFalse(
-            PartnershipRequest.objects.filter(requesting_organization=self.industry).exists(),
-            "Unverified industry must not be able to send partnership requests."
+            Solution.objects.filter(creator=self.univ, title='Org Solution').exists(),
+            "Unverified organization must not be able to submit solutions."
         )
 
-    def test_verified_industry_can_send_partnership_request(self):
-        self.client.login(username="ind2", password="testpass99")
+    def test_verified_organization_can_submit_solution(self):
+        challenge = self._make_challenge(status="approved")
+        self.client.login(username="univ2", password="testpass99")
         response = self.client.post(
-            reverse('partnerships:request_create'),
+            reverse('solutions:create', kwargs={'challenge_id': challenge.pk}),
             {
-                'target_organization': self.univ_verified.pk,
-                'partnership_type': 'technical',
-                'message': 'We want to partner with you!',
+                'title': 'Verified Org Solution',
+                'description': 'Description here with enough characters.',
+                'proposed_implementation': 'Implementation details here.',
+                'expected_outcome': 'Expected outcome details here.',
+                'required_resources': 'Required resources here.',
+                'estimated_duration': '2 Months',
             }
         )
         self.assertTrue(
-            PartnershipRequest.objects.filter(requesting_organization=self.industry_verified).exists()
+            Solution.objects.filter(creator=self.univ_verified, title='Verified Org Solution').exists(),
+            "Verified organization must be able to submit solutions."
         )
 
-    def test_target_can_accept_partnership(self):
-        p_req = PartnershipRequest.objects.create(
-            requesting_organization=self.industry_verified,
-            target_organization=self.univ_verified,
-            partnership_type='research',
-            message='Research collaboration.',
-            status='pending',
-        )
-        self.client.login(username="univ2", password="testpass99")
-        self.client.post(
-            reverse('partnerships:respond', kwargs={'pk': p_req.pk}),
-            {'status': 'accepted', 'response_note': 'Glad to partner!'}
-        )
-        p_req.refresh_from_db()
-        self.assertEqual(p_req.status, 'accepted')
-
-    def test_target_can_decline_partnership(self):
-        p_req = PartnershipRequest.objects.create(
-            requesting_organization=self.industry_verified,
-            target_organization=self.univ_verified,
-            partnership_type='research',
-            message='Would you join us?',
-            status='pending',
-        )
-        self.client.login(username="univ2", password="testpass99")
-        self.client.post(
-            reverse('partnerships:respond', kwargs={'pk': p_req.pk}),
-            {'status': 'rejected', 'response_note': 'Not at this time.'}
-        )
-        p_req.refresh_from_db()
-        # Model uses 'rejected' to mean Declined
-        self.assertEqual(p_req.status, 'rejected')
-
-    def test_non_target_cannot_respond_to_partnership(self):
-        p_req = PartnershipRequest.objects.create(
-            requesting_organization=self.industry_verified,
-            target_organization=self.univ_verified,
-            partnership_type='research',
-            message='Private request.',
-            status='pending',
-        )
-        # student2 is not the target — should get 404 or redirect
-        self.client.login(username="student2", password="testpass99")
+    def test_unverified_organization_cannot_post_comment(self):
+        challenge = self._make_challenge(status="approved")
+        self.client.login(username="ind1", password="testpass99")
         response = self.client.post(
-            reverse('partnerships:respond', kwargs={'pk': p_req.pk}),
-            {'status': 'accepted', 'response_note': 'Hacked!'}
+            reverse('challenges:comment_add', kwargs={'pk': challenge.pk}),
+            {'content': 'Official unverified response.'}
         )
-        p_req.refresh_from_db()
-        self.assertEqual(p_req.status, 'pending',
-                         "Non-target must not be able to respond to a partnership request.")
+        self.assertFalse(
+            Comment.objects.filter(user=self.industry, content='Official unverified response.').exists(),
+            "Unverified organization must not be able to post official responses or comments."
+        )
+
+    def test_verified_organization_can_post_comment(self):
+        challenge = self._make_challenge(status="approved")
+        self.client.login(username="ind2", password="testpass99")
+        response = self.client.post(
+            reverse('challenges:comment_add', kwargs={'pk': challenge.pk}),
+            {'content': 'Official verified organization response.'}
+        )
+        self.assertTrue(
+            Comment.objects.filter(user=self.industry_verified, content='Official verified organization response.').exists(),
+            "Verified organization must be able to post responses."
+        )
 
     def test_logout_requires_post(self):
         self.client.login(username="student1", password="testpass99")
@@ -578,12 +565,7 @@ class PartnershipTests(BaseTestCase):
         self.assertEqual(response.status_code, 405)
 
     def test_dashboard_loads_for_all_roles(self):
-        for username, text in [
-            ("student1", "Citizen"),
-            ("univ1", "Academic"),
-            ("ind1", "Corporate"),
-            ("admin1", "Administration"),
-        ]:
+        for username in ["student1", "univ1", "ind1", "admin1"]:
             self.client.login(username=username, password="testpass99")
             response = self.client.get(reverse('dashboard:index'))
             self.assertEqual(response.status_code, 200)
@@ -654,6 +636,24 @@ class PilotSponsorTests(BaseTestCase):
             description="Active project."
         )
         self.client.login(username="ind1", password="testpass99")
+        url = reverse('collaborations:sponsor_pilot', kwargs={'pk': project.pk})
+        response = self.client.post(url)
+        project.refresh_from_db()
+        self.assertNotEqual(project.status, 'pilot')
+        self.assertIsNone(project.pilot_sponsor)
+
+    def test_citizen_cannot_sponsor_pilot(self):
+        challenge = self._make_challenge(status="approved")
+        solution = self._make_solution(challenge, creator=self.student, accepted=True)
+        project = Project.objects.create(
+            title="Clean Rivers Project 3",
+            challenge=challenge,
+            solution=solution,
+            lead=self.student,
+            status="active",
+            description="Active project."
+        )
+        self.client.login(username="student1", password="testpass99")
         url = reverse('collaborations:sponsor_pilot', kwargs={'pk': project.pk})
         response = self.client.post(url)
         project.refresh_from_db()
@@ -917,7 +917,6 @@ class SmokeAndRegressionTests(TestCase):
             reverse('solutions:detail', kwargs={'pk': solution.pk}),
             reverse('collaborations:list'),
             reverse('collaborations:detail', kwargs={'pk': project.pk}),
-            reverse('partnerships:directory'),
             reverse('dashboard:leaderboard'),
             reverse('dashboard:analytics'),
             reverse('accounts:profile'),
@@ -929,6 +928,7 @@ class SmokeAndRegressionTests(TestCase):
             ('student_alex', 'alex123'),
             ('univ_mit', 'mit123'),
             ('ind_greenpower', 'green123'),
+            ('ngo_baykeeper', 'bay123'),
             ('admin', 'admin123'),
         ]
 
@@ -973,7 +973,7 @@ class SmokeAndRegressionTests(TestCase):
         Verifies template renders properly without errors and does not show Launch Project button.
         """
         category = Category.objects.first()
-        user = User.objects.filter(role='student').first()
+        user = User.objects.filter(role__in=['citizen', 'student']).first()
         ch_no_accepted = Challenge.objects.create(
             title="Challenge without accepted solutions",
             category=category,
@@ -1008,7 +1008,7 @@ class SmokeAndRegressionTests(TestCase):
         Verifies that challenges with empty latitude/longitude show 'Not on map' badge on challenge cards.
         """
         category = Category.objects.first()
-        user = User.objects.filter(role='student').first()
+        user = User.objects.filter(role__in=['citizen', 'student']).first()
         ch_unmapped = Challenge.objects.create(
             title="Unmapped Challenge Card",
             category=category,

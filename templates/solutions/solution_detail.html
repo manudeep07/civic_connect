@@ -144,21 +144,15 @@
         </a>
       </div>
 
-      <!-- Partnership & Mentorship Card -->
+      <!-- Adoption & Sponsorship Card -->
       <div class="card p-3 border">
         <h3 class="h6 fw-semibold text-dark mb-2">Adoption & Sponsorship</h3>
         <p class="small text-muted mb-3">
-          Interested in mentoring the innovators or sponsoring a pilot trial for this solution?
+          Organizations can sponsor active project workspaces as field pilots once solutions are accepted.
         </p>
-        {% if user.is_authenticated and user.role in 'university industry' %}
-          <a href="{% url 'partnerships:request_create' %}?challenge={{ challenge.pk }}" class="btn btn-outline-secondary btn-sm w-100">
-            Propose Mentorship / Pilot
-          </a>
-        {% else %}
-          <a href="{% url 'accounts:register' %}?role=industry" class="btn btn-outline-secondary btn-sm w-100">
-            Join as Partner
-          </a>
-        {% endif %}
+        <a href="{% url 'collaborations:list' %}" class="btn btn-outline-secondary btn-sm w-100">
+          Browse Active Projects
+        </a>
       </div>
     </div>
   </div>

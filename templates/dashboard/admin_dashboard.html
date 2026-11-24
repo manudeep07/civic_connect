@@ -65,22 +65,16 @@
 
   <!-- Secondary Stats Bar -->
   <div class="row g-3 mb-4">
-    <div class="col-md-4 col-6">
+    <div class="col-md-6 col-6">
       <div class="p-3 bg-white rounded-3 border text-center shadow-xs">
         <span class="text-muted small d-block mb-1">Proposed Solutions</span>
         <h4 class="fw-bold text-dark mb-0">{{ stats.total_solutions }}</h4>
       </div>
     </div>
-    <div class="col-md-4 col-6">
+    <div class="col-md-6 col-6">
       <div class="p-3 bg-white rounded-3 border text-center shadow-xs">
         <span class="text-muted small d-block mb-1">Total Upvotes Cast</span>
         <h4 class="fw-bold text-dark mb-0">{{ stats.total_votes }}</h4>
-      </div>
-    </div>
-    <div class="col-md-4 col-12">
-      <div class="p-3 bg-white rounded-3 border text-center shadow-xs">
-        <span class="text-muted small d-block mb-1">Partnership Inquiries</span>
-        <h4 class="fw-bold text-dark mb-0">{{ stats.total_partnerships }}</h4>
       </div>
     </div>
   </div>
@@ -221,7 +215,7 @@
           <a href="{% url 'admin:challenges_challenge_changelist' %}" target="_blank" class="btn btn-light border btn-sm text-start"><i class="bi bi-flag me-2 text-warning"></i> Manage Challenges</a>
           <a href="{% url 'admin:solutions_solution_changelist' %}" target="_blank" class="btn btn-light border btn-sm text-start"><i class="bi bi-lightbulb me-2 text-success"></i> Manage Solutions</a>
           <a href="{% url 'admin:collaborations_project_changelist' %}" target="_blank" class="btn btn-light border btn-sm text-start"><i class="bi bi-kanban me-2 text-primary"></i> Manage Projects</a>
-          <a href="{% url 'admin:partnerships_partnershiprequest_changelist' %}" target="_blank" class="btn btn-light border btn-sm text-start"><i class="bi bi-building me-2 text-danger"></i> Manage Partnerships</a>
+          <a href="{% url 'admin:accounts_customuser_changelist' %}" target="_blank" class="btn btn-light border btn-sm text-start"><i class="bi bi-people me-2 text-secondary"></i> Manage Users</a>
         </div>
       </div>
     </div>

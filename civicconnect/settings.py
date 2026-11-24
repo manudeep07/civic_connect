@@ -72,7 +72,6 @@ INSTALLED_APPS = [
     'challenges',
     'solutions',
     'collaborations',
-    'partnerships',
     'dashboard',
 ]
 

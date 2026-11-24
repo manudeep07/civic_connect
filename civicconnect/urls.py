@@ -12,7 +12,6 @@ urlpatterns = [
     path('challenges/', include('challenges.urls', namespace='challenges')),
     path('solutions/', include('solutions.urls', namespace='solutions')),
     path('collaborations/', include('collaborations.urls', namespace='collaborations')),
-    path('partnerships/', include('partnerships.urls', namespace='partnerships')),
     path('dashboard/', include('dashboard.urls', namespace='dashboard')),
 ]
 

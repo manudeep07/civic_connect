@@ -12,20 +12,20 @@
 
 ## 1. Platform Overview
 
-CivicConnect connects four key stakeholders into an active problem-solving network:
+CivicConnect connects stakeholders into an active problem-solving network:
 - **Citizens & Students:** Identify and submit societal challenges with interactive map pinpoints, propose actionable solutions, vote, join multidisciplinary project teams, and earn points on the Contributor Leaderboard.
-- **Universities:** Publish academic and research challenges, discover student innovations, mentor collaborative projects, and partner with industry.
-- **Industries:** Browse challenges and vetted solutions, sponsor projects as **Pilots**, propose strategic partnerships, and mentor student teams.
-- **Platform Administrators:** Review and moderate challenges via POST-only moderation, verify university and industry organizations, monitor platform statistics, and access Django Admin.
+- **Organizations (Universities, Industry, Government & NGOs):** Publish challenges, discover student innovations, mentor collaborative projects, and sponsor projects as **Pilots**.
+- **Platform Administrators:** Review and moderate challenges via POST-only moderation, verify organizations, monitor platform statistics, and access Django Admin.
 
 ---
 
 ## 2. Key Modules & Features
 
 ### Authentication & Role-Based Access (`accounts`)
-- Custom User Model (`accounts.CustomUser`) supporting four roles: `student`, `university`, `industry`, `admin`.
-- **Public Registration Control:** Registration is restricted to `student`, `university`, or `industry`. Admin accounts cannot be created via public registration.
-- **Organization Verification (`is_verified`):** Students and administrators auto-verify on creation. University and industry partners default to unverified and require admin review before sending partnership requests or sponsoring pilots.
+- Custom User Model (`accounts.CustomUser`) supporting simplified roles: `citizen` (Citizen / Student), `organization` (University, Industry, Government / NGO), and `admin`.
+- **Organization Type (`org_type`):** Applicable when role is `organization`, choosing between `university`, `industry`, or `government_ngo`.
+- **Public Registration Control:** Public registration is available for `citizen` and `organization`. Admin accounts cannot be created via public registration.
+- **Organization Verification (`is_verified`):** Citizens and administrators auto-verify on creation. Organizations default to unverified (`is_verified=False`) and require admin review before they can post official responses, submit solutions as an organization, lead projects, or sponsor pilots.
 - **Security & Integrity:** Image file validation (JPEG/PNG/WEBP, max 2 MB), safe host redirection, POST-only logout, and 8-character minimum passwords.
 
 ### Challenge Management (`challenges`)
@@ -40,21 +40,13 @@ CivicConnect connects four key stakeholders into an active problem-solving netwo
 - **Proposals:** Detailed technical solutions with milestones, duration, and required resources.
 - **Acceptance:** Challenge creators or administrators can accept proposals. Acceptance allows launching a project workspace.
 - **Workspaces:** Real-time milestone progress tracking ($0\% - 100\%$), status management (`Planning`, `Active`, `Pilot`, `On Hold`, `Completed`), and team role assignment.
-- **Industry Pilot Sponsorship:** Verified industry partners can sponsor an active project as a **Pilot**, displaying their sponsor badge on the project page.
+- **Pilot Sponsorship:** Verified organizations can sponsor an active project as a **Pilot**, displaying their sponsor badge on the project page.
 
-### Partnerships & Directory (`partnerships`)
-- Searchable partner directory of verified Academic Institutions and Industry Leaders.
-- Formal collaboration proposals (`Mentorship`, `Technical R&D`, `Sponsorship`, `Student Placement`, `Strategic Partnership`).
-- Incoming and outgoing proposal management with acceptance and response notes.
-
-### Analytics Dashboard (`dashboard`)
-- Accessible to administrators and verified university/industry partners at `/dashboard/analytics/`.
-- Interactive Chart.js charts:
-  1. Challenges by Category (Bar chart)
-  2. Challenges by Status (Doughnut chart)
-  3. Top Locations by Challenge Count (Horizontal bar chart)
-  4. Solutions per Challenge (Top 10 bar chart)
-  5. Platform summary metrics
+### Dashboards & Analytics (`dashboard`)
+- **Citizen Dashboard:** Tracks personal challenges, proposed solutions, collaborative project memberships, and votes.
+- **Organization Dashboard:** Unified workspace displaying assigned/published challenges, solutions, sponsored pilots, and active collaborations.
+- **Admin Dashboard:** Moderation queue for challenges, user management, and system overview.
+- **Analytics Dashboard:** Accessible to administrators and verified organizations at `/dashboard/analytics/` with interactive Chart.js charts.
 
 ### Contributor Leaderboard (`dashboard`)
 - Accessible at `/dashboard/leaderboard/`.
@@ -153,12 +145,6 @@ civicconnect/
 │   ├── views.py                # Workspace, Member Management, Pilot Sponsorship
 │   └── urls.py                 # Collaboration URLs
 │
-├── partnerships/               # University & Industry Engagement
-│   ├── models.py               # PartnershipRequest Model
-│   ├── forms.py                # PartnershipRequestForm, ResponseForm
-│   ├── views.py                # Directory, Proposals, Inbox/Outbox
-│   └── urls.py                 # Partnership URLs
-│
 ├── dashboard/                  # Dashboards, Analytics & Leaderboard
 │   ├── views.py                # Role Dashboards, Analytics, Leaderboard
 │   └── urls.py                 # Dashboard URLs
@@ -171,8 +157,7 @@ civicconnect/
 │   ├── challenges/             # List, Detail, Form, Map View
 │   ├── solutions/              # Form, Detail, Confirm Delete
 │   ├── collaborations/         # Project List, Workspace, Form
-│   ├── partnerships/           # Directory, Proposal Form, Inbox
-│   └── dashboard/              # Student, University, Industry, Admin, Analytics, Leaderboard
+│   └── dashboard/              # Student/Citizen, Organization, Admin, Analytics, Leaderboard
 │
 └── static/                     # Static Assets (CSS, JS)
 ```
@@ -239,18 +224,16 @@ Visit `http://127.0.0.1:8000/` in your browser.
 
 ## 6. Demo Accounts
 
-Running `python manage.py populate_db` seeds the following test accounts:
+Running `python manage.py populate_db` seeds the following demo accounts (1 admin, 3 organizations across all org types, and 2 citizens):
 
-| Role | Username | Password | Organization / Description |
-|---|---|---|---|
-| **Administrator** | `admin` | `admin123` | Platform Administrator |
-| **University** | `univ_mit` | `mit123` | MIT Innovation Lab |
-| **University** | `univ_stanford` | `stanford123` | Stanford Center for Social Impact |
-| **University** | `univ_iit` | `iit123` | IIT Bombay CTARA |
-| **Industry** | `ind_greenpower` | `green123` | GreenPower Energy Systems |
-| **Industry** | `ind_techcorp` | `tech123` | Apex Technologies Global |
-| **Student** | `student_alex` | `alex123` | Alex Chen |
-| **Student** | `student_priya` | `priya123` | Priya Sharma |
+| Role | Organization Type | Username | Password | Organization / Description |
+|---|---|---|---|---|
+| **Administrator** | — | `admin` | `admin123` | Platform Superuser & Administrator |
+| **Organization** | `university` | `univ_mit` | `mit123` | MIT Innovation Lab |
+| **Organization** | `industry` | `ind_greenpower` | `green123` | GreenPower Energy Systems |
+| **Organization** | `government_ngo` | `ngo_baykeeper` | `bay123` | Tampa Bay Baykeeper NGO |
+| **Citizen / Student** | — | `student_alex` | `alex123` | Alex Chen (Citizen Innovator) |
+| **Citizen / Student** | — | `student_priya` | `priya123` | Priya Sharma (Citizen Researcher) |
 
 ---
 

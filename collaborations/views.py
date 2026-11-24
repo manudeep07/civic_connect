@@ -61,8 +61,6 @@ def project_detail_view(request, pk):
     is_member = (request.user.is_authenticated and project.is_member(request.user))
 
     member_form = ProjectMembershipAddForm(project=project) if is_lead else None
-    has_partner_role = (request.user.is_authenticated and (request.user.is_university or request.user.is_industry))
-    partnership_requests = project.partnership_requests.all() if (is_lead or has_partner_role) else []
 
     context = {
         'project': project,
@@ -70,7 +68,6 @@ def project_detail_view(request, pk):
         'is_lead': is_lead,
         'is_member': is_member,
         'member_form': member_form,
-        'partnership_requests': partnership_requests,
     }
     return render(request, 'collaborations/project_detail.html', context)
 
@@ -100,7 +97,7 @@ def project_create_from_solution_view(request, solution_id):
         messages.error(request, "Only the solution creator or an administrator can launch a project from this solution.")
         return redirect('solutions:detail', pk=solution.pk)
 
-    if request.user.role in ['university', 'industry'] and not request.user.is_verified:
+    if request.user.role in ['organization', 'university', 'industry'] and not request.user.is_verified:
         messages.error(request, "Your organization must be verified by an administrator before leading projects.")
         return redirect('solutions:detail', pk=solution.pk)
 
@@ -164,7 +161,7 @@ def project_create_from_challenge_view(request, challenge_id):
         messages.error(request, "Projects can only be created for approved or in-progress challenges.")
         return redirect('challenges:detail', pk=challenge.pk)
 
-    if request.user.role in ['university', 'industry'] and not request.user.is_verified:
+    if request.user.role in ['organization', 'university', 'industry'] and not request.user.is_verified:
         messages.error(request, "Your organization must be verified by an administrator before leading projects.")
         return redirect('challenges:detail', pk=challenge.pk)
 
@@ -320,7 +317,7 @@ def project_quick_join_view(request, pk):
         messages.info(request, "You are already a member of this project team.")
         return redirect('collaborations:detail', pk=project.pk)
 
-    role_title = 'Student Developer' if request.user.is_student else ('Faculty Mentor' if request.user.is_university else 'Contributor')
+    role_title = 'Organization Partner' if (request.user.role == 'organization' or request.user.is_university or request.user.is_industry) else 'Contributor'
     ProjectMembership.objects.create(
         project=project,
         user=request.user,
@@ -342,13 +339,13 @@ def project_quick_join_view(request, pk):
 @login_required
 def project_sponsor_pilot_view(request, pk):
     """
-    Industry partners can sponsor a project as a Pilot.
+    Organizations can sponsor a project as a Pilot.
     Sets status to 'pilot' and records the sponsor.
     """
     project = get_object_or_404(Project, pk=pk)
 
-    if not request.user.is_industry:
-        messages.error(request, "Only verified industry partners can sponsor a pilot.")
+    if not (request.user.role == 'organization' or request.user.role == 'industry'):
+        messages.error(request, "Only verified organizations can sponsor a pilot.")
         return redirect('collaborations:detail', pk=project.pk)
 
     if not request.user.is_verified:

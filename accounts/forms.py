@@ -7,6 +7,8 @@ from .validators import validate_image_file
 User = get_user_model()
 
 PUBLIC_ROLE_CHOICES = (
+    ('citizen', 'Citizen / Student'),
+    ('organization', 'Organization'),
     ('student', 'Citizen / Student'),
     ('university', 'University'),
     ('industry', 'Industry'),
@@ -33,6 +35,11 @@ class UserRegistrationForm(forms.ModelForm):
         widget=forms.Select(attrs={'class': 'form-select'}),
         required=True
     )
+    org_type = forms.ChoiceField(
+        choices=[('', '-- Select Organization Type --')] + list(User.ORG_TYPE_CHOICES),
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
     password = forms.CharField(
         widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Create strong password'}),
         help_text="At least 8 characters"
@@ -49,6 +56,7 @@ class UserRegistrationForm(forms.ModelForm):
             'last_name',
             'email',
             'role',
+            'org_type',
             'institution_name',
             'location',
         ]
@@ -60,8 +68,15 @@ class UserRegistrationForm(forms.ModelForm):
 
     def clean_role(self):
         role = self.cleaned_data.get('role')
-        if role not in ['student', 'university', 'industry']:
+        if role == 'admin':
             raise ValidationError("Administrator accounts cannot be registered publicly.")
+        # Map legacy roles if provided
+        if role == 'student':
+            return 'citizen'
+        if role in ['university', 'industry']:
+            return 'organization'
+        if role not in ['citizen', 'organization']:
+            raise ValidationError("Invalid role selected.")
         return role
 
     def clean_email(self):
@@ -75,13 +90,25 @@ class UserRegistrationForm(forms.ModelForm):
         password = cleaned_data.get("password")
         confirm_password = cleaned_data.get("confirm_password")
         role = cleaned_data.get("role")
+        raw_role = self.data.get("role")
+        org_type = cleaned_data.get("org_type")
         institution = cleaned_data.get("institution_name")
 
         if password and confirm_password and password != confirm_password:
             self.add_error('confirm_password', "Passwords do not match.")
 
-        if role in ['university', 'industry'] and not institution:
-            self.add_error('institution_name', f"Institution/Company name is required for {role.capitalize()} role.")
+        # If submitted with legacy university or industry, default org_type
+        if raw_role in ['university', 'industry'] and not org_type:
+            org_type = raw_role
+            cleaned_data['org_type'] = org_type
+
+        if role == 'organization':
+            if not institution:
+                self.add_error('institution_name', "Institution/Company name is required for Organization role.")
+            if not org_type:
+                self.add_error('org_type', "Organization type is required for Organization role.")
+        else:
+            cleaned_data['org_type'] = None
 
         return cleaned_data
 

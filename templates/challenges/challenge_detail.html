@@ -331,19 +331,19 @@
         </div>
       </div>
 
-      <!-- University & Industry Engagement Callout -->
+      <!-- Organization Collaboration Callout -->
       <div class="card p-3 border">
-        <h3 class="h6 fw-semibold text-dark mb-2">Academic & Industry Mentorship</h3>
+        <h3 class="h6 fw-semibold text-dark mb-2">Organization Collaboration</h3>
         <p class="small text-muted mb-3">
-          Universities and corporate partners can adopt this challenge for student capstones, applied R&D, or sponsored pilot trials.
+          Universities, enterprises, and NGOs can collaborate on this challenge, mentor innovators, or launch sponsored pilot initiatives.
         </p>
-        {% if user.is_authenticated and user.role in 'university industry' %}
-          <a href="{% url 'partnerships:request_create' %}?challenge={{ challenge.pk }}" class="btn btn-outline-secondary btn-sm w-100">
-            Express Collaboration Interest
+        {% if user.is_authenticated and user.is_verified and user.role in 'organization university industry' %}
+          <a href="{% url 'collaborations:create_from_challenge' challenge.pk %}" class="btn btn-outline-primary btn-sm w-100">
+            Initiate Project Workspace
           </a>
         {% else %}
-          <a href="{% url 'accounts:register' %}?role=university" class="btn btn-outline-secondary btn-sm w-100">
-            Partner with CivicConnect
+          <a href="{% url 'accounts:register' %}?role=organization" class="btn btn-outline-secondary btn-sm w-100">
+            Join as Organization
           </a>
         {% endif %}
       </div>

@@ -66,12 +66,12 @@
               <i class="bi bi-key me-1"></i> Change Password
             </a>
           </div>
-        {% else %}
-          {% if user.is_authenticated and profile_user.role in 'university industry' %}
-            <a href="{% url 'partnerships:request_create' %}?target={{ profile_user.id }}" class="btn btn-primary btn-sm w-100">
-              <i class="bi bi-handshake me-1"></i> Propose Partnership
+        {% elif profile_user.website %}
+          <div class="d-grid">
+            <a href="{{ profile_user.website }}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm">
+              <i class="bi bi-globe me-1"></i> Visit Website
             </a>
-          {% endif %}
+          </div>
         {% endif %}
       </div>
     </div>

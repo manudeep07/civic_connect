@@ -129,8 +129,8 @@ def challenge_create_view(request):
             challenge = form.save(commit=False)
             challenge.creator = request.user
 
-            # If user is admin or university, automatically approve, else pending review
-            if request.user.is_admin_user or request.user.is_university:
+            # If user is admin or verified organization, automatically approve, else pending review
+            if request.user.is_admin_user or (request.user.role == 'organization' and request.user.is_verified):
                 challenge.status = 'approved'
                 messages.success(request, f"Challenge '{challenge.title}' published successfully!")
             else:
@@ -279,6 +279,11 @@ def comment_add_view(request, pk):
 
     if challenge.status not in ['approved', 'in_progress']:
         messages.error(request, "Comments are only allowed on approved or in-progress challenges.")
+        return redirect('challenges:detail', pk=pk)
+
+    # Organizations must be verified before posting official responses / comments
+    if request.user.role == 'organization' and not request.user.is_verified:
+        messages.error(request, "Your organization must be verified by an administrator before posting responses.")
         return redirect('challenges:detail', pk=pk)
 
     form = CommentForm(request.POST)

@@ -5,21 +5,33 @@ from .validators import validate_image_file
 
 class CustomUser(AbstractUser):
     ROLE_CHOICES = (
-        ('student', 'Citizen / Student'),
+        ('citizen', 'Citizen / Student'),
+        ('organization', 'Organization'),
+        ('admin', 'Administrator'),
+    )
+
+    ORG_TYPE_CHOICES = (
         ('university', 'University'),
         ('industry', 'Industry'),
-        ('admin', 'Administrator'),
+        ('government_ngo', 'Government / NGO'),
     )
 
     role = models.CharField(
         max_length=20,
         choices=ROLE_CHOICES,
-        default='student',
+        default='citizen',
         help_text="Designated role for platform access and permissions"
+    )
+    org_type = models.CharField(
+        max_length=20,
+        choices=ORG_TYPE_CHOICES,
+        blank=True,
+        null=True,
+        help_text="Organization type (used only when role is organization)"
     )
     is_verified = models.BooleanField(
         default=False,
-        help_text="Designates whether this university or industry organization is verified by administrators."
+        help_text="Designates whether this organization is verified by administrators."
     )
     institution_name = models.CharField(
         max_length=255,
@@ -58,9 +70,27 @@ class CustomUser(AbstractUser):
         ordering = ['-date_joined']
 
     def save(self, *args, **kwargs):
-        # Auto-verify students and administrators on creation; university and industry require admin review
-        if self._state.adding and self.role in ['student', 'admin']:
+        # Normalize legacy roles if passed
+        if self.role == 'student':
+            self.role = 'citizen'
+        elif self.role == 'university':
+            self.role = 'organization'
+            if not self.org_type:
+                self.org_type = 'university'
+        elif self.role == 'industry':
+            self.role = 'organization'
+            if not self.org_type:
+                self.org_type = 'industry'
+
+        # Auto-verify citizens and administrators on creation; organizations require admin review
+        if self._state.adding and self.is_superuser:
+            self.role = 'admin'
+        if self._state.adding and self.role in ['citizen', 'admin']:
             self.is_verified = True
+        elif self._state.adding and self.role == 'organization':
+            if self.is_verified is None:
+                self.is_verified = False
+
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -70,16 +100,24 @@ class CustomUser(AbstractUser):
         return f"{display} [{self.get_role_display()}]"
 
     @property
+    def is_citizen(self):
+        return self.role == 'citizen'
+
+    @property
+    def is_organization(self):
+        return self.role == 'organization'
+
+    @property
     def is_student(self):
-        return self.role == 'student'
+        return self.role == 'citizen'
 
     @property
     def is_university(self):
-        return self.role == 'university'
+        return self.role == 'organization' and self.org_type == 'university'
 
     @property
     def is_industry(self):
-        return self.role == 'industry'
+        return self.role == 'organization' and self.org_type == 'industry'
 
     @property
     def is_admin_user(self):
@@ -91,10 +129,12 @@ class CustomUser(AbstractUser):
 
     def get_role_badge_class(self):
         badge_map = {
+            'citizen': 'bg-primary',
+            'organization': 'bg-success',
+            'admin': 'bg-danger',
             'student': 'bg-primary',
             'university': 'bg-success',
             'industry': 'bg-info text-dark',
-            'admin': 'bg-danger',
         }
         return badge_map.get(self.role, 'bg-secondary')
 
