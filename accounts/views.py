@@ -27,7 +27,7 @@ def register_view(request):
             log_activity(
                 user=user,
                 activity_type='user_registered',
-                title=f"Welcome to CivicConnect, {user.first_name}!",
+                title=f"Welcome to CivicConnect, {user.get_full_name() or user.username}!",
                 description="Your account was successfully created.",
                 link='/dashboard/'
             )

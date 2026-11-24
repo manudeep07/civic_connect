@@ -16,12 +16,12 @@ PUBLIC_ROLE_CHOICES = (
 class UserRegistrationForm(forms.ModelForm):
     first_name = forms.CharField(
         max_length=50,
-        required=True,
+        required=False,
         widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'First Name'})
     )
     last_name = forms.CharField(
         max_length=50,
-        required=True,
+        required=False,
         widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Last Name'})
     )
     email = forms.EmailField(
@@ -79,6 +79,12 @@ class UserRegistrationForm(forms.ModelForm):
 
         if password and confirm_password and password != confirm_password:
             self.add_error('confirm_password', "Passwords do not match.")
+
+        if role == 'student':
+            if not cleaned_data.get('first_name'):
+                self.add_error('first_name', "First name is required for Student accounts.")
+            if not cleaned_data.get('last_name'):
+                self.add_error('last_name', "Last name is required for Student accounts.")
 
         if role in ['university', 'industry'] and not institution:
             self.add_error('institution_name', f"Institution/Company name is required for {role.capitalize()} role.")

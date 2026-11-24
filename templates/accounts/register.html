@@ -47,7 +47,7 @@
           {% endif %}
         </div>
 
-        <div class="row g-3 mb-3">
+        <div class="row g-3 mb-3" id="nameFieldsWrapper">
           <div class="col-md-6">
             <label for="{{ form.first_name.id_for_label }}" class="form-label small fw-semibold">First Name <span class="text-danger">*</span></label>
             {{ form.first_name }}
@@ -136,6 +136,9 @@ document.addEventListener('DOMContentLoaded', function() {
   const roleSelect = document.getElementById('id_role');
   const segmentedOptions = document.querySelectorAll('.role-segmented-option');
   const institutionMarker = document.getElementById('institutionRequiredMarker');
+  const nameFieldsWrapper = document.getElementById('nameFieldsWrapper');
+  const firstNameInput = document.getElementById('id_first_name');
+  const lastNameInput = document.getElementById('id_last_name');
 
   function updateActiveOption(selectedVal) {
     segmentedOptions.forEach(opt => {
@@ -153,6 +156,13 @@ document.addEventListener('DOMContentLoaded', function() {
         institutionMarker.classList.add('d-none');
       }
     }
+
+    const hidesNames = selectedVal === 'university' || selectedVal === 'industry';
+    if (nameFieldsWrapper) {
+      nameFieldsWrapper.classList.toggle('d-none', hidesNames);
+    }
+    if (firstNameInput) firstNameInput.required = !hidesNames;
+    if (lastNameInput) lastNameInput.required = !hidesNames;
   }
 
   if (roleSelect) {
