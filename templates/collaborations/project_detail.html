@@ -39,7 +39,7 @@
           </form>
         {% endif %}
 
-        {% if user.is_authenticated and user.is_industry and user.is_verified and project.status == 'active' and not project.pilot_sponsor %}
+        {% if user.is_authenticated and user.is_verified and user.role in 'organization industry' and project.status == 'active' and not project.pilot_sponsor %}
           <form method="post" action="{% url 'collaborations:sponsor_pilot' project.pk %}" onsubmit="return confirm('Sponsor this project as an industry pilot?');">
             {% csrf_token %}
             <button type="submit" class="btn btn-primary btn-sm">
@@ -233,17 +233,14 @@
         </div>
       {% endif %}
 
-      <!-- Propose Partnership Card -->
       <div class="card p-3 border">
-        <h3 class="h6 fw-semibold text-dark mb-2">Partner with this Initiative</h3>
+        <h3 class="h6 fw-semibold text-dark mb-2">Explore Collaborations</h3>
         <p class="small text-muted mb-3">
-          Universities and industry organizations can provide lab testing, technical sponsorship, or advisory support.
+          Join interdisciplinary teams or explore more societal challenges to solve.
         </p>
-        {% if user.is_authenticated and user.role in 'university industry' %}
-          <a href="{% url 'partnerships:request_create' %}?project={{ project.pk }}" class="btn btn-outline-secondary btn-sm w-100">
-            Propose Partnership / Mentorship
-          </a>
-        {% endif %}
+        <a href="{% url 'challenges:list' %}" class="btn btn-outline-secondary btn-sm w-100">
+          Browse All Challenges
+        </a>
       </div>
     </div>
   </div>

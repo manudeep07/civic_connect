@@ -8,7 +8,6 @@ from django.db.models import Count, Q
 from challenges.models import Challenge, Category, Vote, Comment
 from solutions.models import Solution
 from collaborations.models import Project, ProjectMembership
-from partnerships.models import PartnershipRequest
 from accounts.models import Activity
 from accounts.utils import log_activity
 
@@ -27,13 +26,9 @@ def dashboard_index_view(request):
     if user.is_admin_user or role == 'admin':
         return render_admin_dashboard(request)
 
-    # University role dashboard
-    elif role == 'university':
-        return render_university_dashboard(request)
-
-    # Industry role dashboard
-    elif role == 'industry':
-        return render_industry_dashboard(request)
+    # Organization dashboard (unified for university, industry, government/ngo)
+    elif role == 'organization' or role in ['university', 'industry']:
+        return render_organization_dashboard(request)
 
     # Default Citizen / Student dashboard
     else:
@@ -69,58 +64,42 @@ def render_student_dashboard(request):
     return render(request, 'dashboard/student_dashboard.html', context)
 
 
-def render_university_dashboard(request):
+def render_organization_dashboard(request):
+    """
+    Merged dashboard for all organizations:
+    - Assigned / published challenges
+    - My solutions (submitted by organization or received on organization challenges)
+    - Sponsored pilots
+    """
     user = request.user
-    published_challenges = Challenge.objects.filter(creator=user).select_related('category')
-    associated_projects = Project.objects.filter(
-        Q(lead=user) | Q(challenge__creator=user) | Q(memberships__user=user)
-    ).distinct().select_related('challenge', 'lead')
 
-    # Student solutions submitted for university challenges
-    student_solutions = Solution.objects.filter(
+    # Assigned or created challenges by this organization
+    if user.institution_name:
+        assigned_challenges = Challenge.objects.filter(
+            Q(creator=user) | Q(organization_name__icontains=user.institution_name)
+        ).distinct().select_related('category', 'creator')
+    else:
+        assigned_challenges = Challenge.objects.filter(creator=user).select_related('category', 'creator')
+
+    # Solutions submitted by this organization
+    my_solutions = Solution.objects.filter(creator=user).select_related('challenge')
+
+    # Solutions received on challenges created by this organization
+    received_solutions = Solution.objects.filter(
         challenge__creator=user
     ).select_related('creator', 'challenge')
 
-    pending_partnerships = PartnershipRequest.objects.filter(
-        target_organization=user,
-        status='pending'
-    ).select_related('requesting_organization', 'project', 'challenge')
+    # Sponsored pilot initiatives
+    sponsored_pilots = Project.objects.filter(
+        pilot_sponsor=user
+    ).select_related('challenge', 'lead')
 
-    recent_activities = user.activities.all()[:8]
-
-    stats = {
-        'published_challenges': published_challenges.count(),
-        'active_projects': associated_projects.filter(status='active').count(),
-        'received_solutions': student_solutions.count(),
-        'pending_partnerships': pending_partnerships.count(),
-    }
-
-    context = {
-        'stats': stats,
-        'published_challenges': published_challenges[:5],
-        'associated_projects': associated_projects[:5],
-        'student_solutions': student_solutions[:5],
-        'pending_partnerships': pending_partnerships,
-        'recent_activities': recent_activities,
-    }
-    return render(request, 'dashboard/university_dashboard.html', context)
-
-
-def render_industry_dashboard(request):
-    user = request.user
-    interested_projects = Project.objects.filter(
+    # Associated projects led or collaborated on
+    associated_projects = Project.objects.filter(
         Q(lead=user) | Q(memberships__user=user)
     ).distinct().select_related('challenge', 'lead')
 
-    sent_requests = PartnershipRequest.objects.filter(
-        requesting_organization=user
-    ).select_related('target_organization', 'project', 'challenge')
-
-    received_requests = PartnershipRequest.objects.filter(
-        target_organization=user
-    ).select_related('requesting_organization', 'project', 'challenge')
-
-    # Recommended high-impact challenges in need of industry support
+    # Recommended high-impact challenges in need of support
     available_challenges = Challenge.objects.filter(
         status__in=['approved', 'in_progress'],
         problem_severity__in=['high', 'critical']
@@ -129,21 +108,30 @@ def render_industry_dashboard(request):
     recent_activities = user.activities.all()[:8]
 
     stats = {
-        'collaborations_count': interested_projects.count(),
-        'sent_partnerships': sent_requests.count(),
-        'received_partnerships': received_requests.count(),
-        'available_challenges_count': Challenge.objects.filter(status__in=['approved', 'in_progress']).count(),
+        'assigned_challenges_count': assigned_challenges.count(),
+        'my_solutions_count': my_solutions.count(),
+        'received_solutions_count': received_solutions.count(),
+        'sponsored_pilots_count': sponsored_pilots.count(),
+        'associated_projects_count': associated_projects.count(),
     }
 
     context = {
         'stats': stats,
-        'interested_projects': interested_projects[:5],
-        'sent_requests': sent_requests[:5],
-        'received_requests': received_requests[:5],
+        'assigned_challenges': assigned_challenges[:6],
+        'my_solutions': my_solutions[:6],
+        'received_solutions': received_solutions[:6],
+        'sponsored_pilots': sponsored_pilots[:6],
+        'associated_projects': associated_projects[:6],
         'available_challenges': available_challenges,
         'recent_activities': recent_activities,
     }
-    return render(request, 'dashboard/industry_dashboard.html', context)
+    return render(request, 'dashboard/organization_dashboard.html', context)
+
+
+# Backwards compatibility aliases
+render_university_dashboard = render_organization_dashboard
+render_industry_dashboard = render_organization_dashboard
+render_citizen_dashboard = render_student_dashboard
 
 
 def render_admin_dashboard(request):
@@ -160,7 +148,6 @@ def render_admin_dashboard(request):
         'total_solutions': Solution.objects.count(),
         'total_projects': Project.objects.count(),
         'total_votes': Vote.objects.count(),
-        'total_partnerships': PartnershipRequest.objects.count(),
     }
 
     context = {
@@ -225,10 +212,10 @@ from django.db.models import Sum
 def analytics_view(request):
     """
     Analytics dashboard with Chart.js charts.
-    Accessible to admins, verified universities, and verified industry.
+    Accessible to admins and verified organizations.
     """
     user = request.user
-    if not (user.is_admin_user or (user.role in ['university', 'industry'] and user.is_verified)):
+    if not (user.is_admin_user or (user.role in ['organization', 'university', 'industry'] and user.is_verified)):
         messages.error(request, "Analytics is available to administrators and verified partners.")
         return redirect('dashboard:index')
 

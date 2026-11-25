@@ -23,6 +23,11 @@ def solution_create_view(request, challenge_id):
         messages.error(request, "Solutions can only be submitted for approved or in-progress challenges.")
         return redirect('challenges:detail', pk=challenge.pk)
 
+    # Organizations must be verified by admin before submitting solutions
+    if request.user.role == 'organization' and not request.user.is_verified:
+        messages.error(request, "Your organization must be verified by an administrator before submitting solutions.")
+        return redirect('challenges:detail', pk=challenge.pk)
+
     if request.method == 'POST':
         form = SolutionForm(request.POST)
         if form.is_valid():

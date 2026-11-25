@@ -50,11 +50,6 @@
             </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link {% if request.resolver_match.app_name == 'partnerships' and request.resolver_match.url_name == 'directory' %}active{% endif %}" href="{% url 'partnerships:directory' %}">
-              Partners
-            </a>
-          </li>
-          <li class="nav-item">
             <a class="nav-link {% if request.resolver_match.url_name == 'about' %}active{% endif %}" href="{% url 'about' %}">
               About
             </a>
@@ -107,12 +102,7 @@
                     <i class="bi bi-gear me-2 text-muted"></i> Edit Profile
                   </a>
                 </li>
-                <li>
-                  <a class="dropdown-item py-2" href="{% url 'partnerships:list' %}">
-                    <i class="bi bi-envelope me-2 text-muted"></i> Partnership Requests
-                  </a>
-                </li>
-                {% if user.is_admin_user or user.role == 'university' and user.is_verified or user.role == 'industry' and user.is_verified %}
+                {% if user.is_admin_user or user.is_verified and user.role in 'organization university industry' %}
                 <li>
                   <a class="dropdown-item py-2" href="{% url 'dashboard:analytics' %}">
                     <i class="bi bi-bar-chart me-2 text-muted"></i> Analytics
@@ -194,17 +184,16 @@
             <li><a href="{% url 'challenges:list' %}">Browse Challenges</a></li>
             <li><a href="{% url 'challenges:create' %}">Submit Challenge</a></li>
             <li><a href="{% url 'collaborations:list' %}">Active Projects</a></li>
-            <li><a href="{% url 'partnerships:directory' %}">Partners Directory</a></li>
             <li><a href="{% url 'challenges:map' %}">Geographic Challenge Map</a></li>
+            <li><a href="{% url 'dashboard:leaderboard' %}">Contributor Leaderboard</a></li>
           </ul>
         </div>
 
         <div class="col-lg-4 col-md-6">
           <h5>Stakeholder Communities</h5>
           <ul class="list-unstyled small d-flex flex-column gap-2">
-            <li><a href="{% url 'accounts:register' %}?role=student">Students & Innovators</a></li>
-            <li><a href="{% url 'accounts:register' %}?role=university">University Departments</a></li>
-            <li><a href="{% url 'accounts:register' %}?role=industry">Industry R&D & CSR Partners</a></li>
+            <li><a href="{% url 'accounts:register' %}?role=citizen">Citizens & Students</a></li>
+            <li><a href="{% url 'accounts:register' %}?role=organization">Universities & Organizations</a></li>
             <li><a href="{% url 'dashboard:index' %}">Role Dashboards</a></li>
             <li><a href="{% url 'about' %}">About Platform Mission</a></li>
           </ul>

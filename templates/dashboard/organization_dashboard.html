@@ -1,0 +1,297 @@
+{% extends 'base.html' %}
+
+{% block title %}Organization Dashboard – CivicConnect{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+      <div class="d-flex align-items-center gap-2">
+        <h1 class="h3 fw-bold text-dark mb-0">Organization Dashboard</h1>
+        {% if user.is_verified %}
+          <span class="badge badge-success">
+            <i class="bi bi-patch-check-fill me-1"></i>Verified
+          </span>
+        {% else %}
+          <span class="badge badge-warning">
+            <i class="bi bi-clock-history me-1"></i>Pending Review
+          </span>
+        {% endif %}
+      </div>
+      <p class="text-muted small mb-0 mt-1">
+        {% if user.institution_name %}
+          {{ user.institution_name }} &bull;
+        {% endif %}
+        {{ user.get_org_type_display|default:"Organization" }} Partner Workspace
+      </p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{% url 'challenges:create' %}" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus-circle me-1"></i> Post Challenge
+      </a>
+      {% if user.is_verified %}
+        <a href="{% url 'dashboard:analytics' %}" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-bar-chart me-1"></i> Analytics
+        </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Unverified Warning Banner -->
+  {% if not user.is_verified %}
+    <div class="alert alert-warning d-flex align-items-center gap-3 mb-4" role="alert">
+      <i class="bi bi-shield-exclamation fs-4 flex-shrink-0"></i>
+      <div class="small">
+        <strong>Verification Pending:</strong> Your organization is currently awaiting administrator review.
+        Once verified, you will be able to post official responses, submit innovative solutions, lead projects, and sponsor community pilots.
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- Flat Stat Tiles Row -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="stat-tile text-center">
+        <div class="stat-value">{{ stats.assigned_challenges_count }}</div>
+        <div class="stat-label">Assigned Challenges</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="stat-tile text-center">
+        <div class="stat-value">{{ stats.my_solutions_count }}</div>
+        <div class="stat-label">My Solutions</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="stat-tile text-center">
+        <div class="stat-value">{{ stats.sponsored_pilots_count }}</div>
+        <div class="stat-label">Sponsored Pilots</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="stat-tile text-center">
+        <div class="stat-value">{{ stats.associated_projects_count }}</div>
+        <div class="stat-label">Active Collaborations</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Left Column: Assigned Challenges, Solutions, Pilots -->
+    <div class="col-lg-8">
+
+      <!-- Assigned / Published Challenges -->
+      <div class="card card-civic p-4 mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+          <h2 class="h5 fw-bold text-dark mb-0">
+            <i class="bi bi-flag text-muted me-2"></i>Assigned Challenges
+          </h2>
+          <a href="{% url 'challenges:create' %}" class="small text-primary text-decoration-none fw-medium">New Challenge &rarr;</a>
+        </div>
+
+        {% if assigned_challenges %}
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light text-xs">
+                <tr>
+                  <th>Challenge Title</th>
+                  <th>Category</th>
+                  <th>Status</th>
+                  <th>Severity</th>
+                  <th class="text-end">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for ch in assigned_challenges %}
+                  <tr>
+                    <td>
+                      <a href="{% url 'challenges:detail' ch.pk %}" class="text-decoration-none text-dark fw-semibold small">
+                        {{ ch.title|truncatechars:36 }}
+                      </a>
+                    </td>
+                    <td><span class="badge bg-light text-dark border badge-xs">{{ ch.category.name }}</span></td>
+                    <td><span class="badge {{ ch.get_status_badge_class }} badge-xs">{{ ch.get_status_display }}</span></td>
+                    <td><span class="badge {{ ch.get_severity_badge_class }} badge-xs">{{ ch.get_problem_severity_display }}</span></td>
+                    <td class="text-end">
+                      <a href="{% url 'challenges:detail' ch.pk %}" class="btn btn-outline-secondary btn-sm py-0 px-2 small">View</a>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="text-center py-4 text-muted small">
+            No challenges currently assigned to or published by your organization.
+            <div class="mt-2"><a href="{% url 'challenges:create' %}" class="btn btn-primary btn-sm">Post a Challenge</a></div>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- My Solutions -->
+      <div class="card card-civic p-4 mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+          <h2 class="h5 fw-bold text-dark mb-0">
+            <i class="bi bi-lightbulb text-muted me-2"></i>My Solutions
+          </h2>
+          <a href="{% url 'challenges:list' %}" class="small text-primary text-decoration-none fw-medium">Find Challenges &rarr;</a>
+        </div>
+
+        {% if my_solutions %}
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light text-xs">
+                <tr>
+                  <th>Solution Title</th>
+                  <th>Target Challenge</th>
+                  <th>Status</th>
+                  <th class="text-end">View</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for sol in my_solutions %}
+                  <tr>
+                    <td>
+                      <a href="{% url 'solutions:detail' sol.pk %}" class="text-decoration-none text-dark fw-semibold small">
+                        {{ sol.title|truncatechars:32 }}
+                      </a>
+                    </td>
+                    <td class="small text-muted">{{ sol.challenge.title|truncatechars:28 }}</td>
+                    <td>
+                      {% if sol.is_accepted %}
+                        <span class="badge badge-success badge-xs"><i class="bi bi-check2"></i> Accepted</span>
+                      {% else %}
+                        <span class="badge bg-secondary badge-xs">Under Review</span>
+                      {% endif %}
+                    </td>
+                    <td class="text-end">
+                      <a href="{% url 'solutions:detail' sol.pk %}" class="btn btn-outline-secondary btn-sm py-0 px-2 small">Open</a>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="text-center py-4 text-muted small">
+            Your organization has not submitted any solutions yet.
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Sponsored Pilots -->
+      <div class="card card-civic p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+          <h2 class="h5 fw-bold text-dark mb-0">
+            <i class="bi bi-award text-muted me-2"></i>Sponsored Pilots
+          </h2>
+          <a href="{% url 'collaborations:list' %}" class="small text-primary text-decoration-none fw-medium">Browse Projects &rarr;</a>
+        </div>
+
+        {% if sponsored_pilots %}
+          <div class="d-flex flex-column gap-3">
+            {% for pilot in sponsored_pilots %}
+              <div class="p-3 rounded bg-light border">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <h3 class="h6 fw-bold mb-0">
+                    <a href="{% url 'collaborations:detail' pilot.pk %}" class="text-decoration-none text-dark">{{ pilot.title }}</a>
+                  </h3>
+                  <span class="badge bg-info text-dark badge-xs">Pilot</span>
+                </div>
+                <div class="small text-muted mb-2">Lead: {{ pilot.lead.display_name }} &bull; Challenge: {{ pilot.challenge.title|truncatechars:35 }}</div>
+                <div class="progress-civic mb-2">
+                  <div class="progress-bar" role="progressbar" style="width: {{ pilot.progress_percentage }}%;" aria-valuenow="{{ pilot.progress_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center text-xs text-muted">
+                  <span>Progress: {{ pilot.progress_percentage }}%</span>
+                  <a href="{% url 'collaborations:detail' pilot.pk %}" class="btn btn-outline-secondary btn-sm py-0 px-2 small">Workspace &rarr;</a>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-center py-4 text-muted small">
+            No projects currently sponsored as pilots.
+            {% if user.is_verified %}
+              <div class="mt-2"><a href="{% url 'collaborations:list' %}" class="btn btn-outline-secondary btn-sm">Find Active Projects to Sponsor</a></div>
+            {% endif %}
+          </div>
+        {% endif %}
+      </div>
+
+    </div>
+
+    <!-- Right Column: Associated Collaborations & Tools -->
+    <div class="col-lg-4">
+
+      <!-- Active Collaborations -->
+      <div class="card card-civic p-4 mb-4">
+        <h2 class="h6 fw-bold text-dark mb-3 pb-2 border-bottom">
+          <i class="bi bi-kanban text-muted me-2"></i>Active Project Teams
+        </h2>
+        {% if associated_projects %}
+          <div class="d-flex flex-column gap-3">
+            {% for proj in associated_projects %}
+              <div class="p-2 rounded bg-light border">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <a href="{% url 'collaborations:detail' proj.pk %}" class="fw-semibold small text-dark text-decoration-none">{{ proj.title|truncatechars:26 }}</a>
+                  <span class="badge {{ proj.get_status_badge_class }} badge-xs">{{ proj.get_status_display }}</span>
+                </div>
+                <div class="progress-civic">
+                  <div class="progress-bar" role="progressbar" style="width: {{ proj.progress_percentage }}%;" aria-valuenow="{{ proj.progress_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="small text-muted mb-0 text-center py-2">No active project teams enrolled.</p>
+        {% endif %}
+      </div>
+
+      <!-- Quick Platform Actions -->
+      <div class="card card-civic p-4 mb-4">
+        <h2 class="h6 fw-bold text-dark mb-3">Organization Tools</h2>
+        <div class="d-grid gap-2 small">
+          <a href="{% url 'challenges:create' %}" class="btn btn-outline-primary btn-sm text-start">
+            <i class="bi bi-plus-circle me-2"></i> Submit Challenge
+          </a>
+          <a href="{% url 'collaborations:list' %}" class="btn btn-outline-secondary btn-sm text-start">
+            <i class="bi bi-kanban me-2"></i> Explore Collaborative Projects
+          </a>
+          <a href="{% url 'challenges:map' %}" class="btn btn-outline-secondary btn-sm text-start">
+            <i class="bi bi-map me-2"></i> Geospatial Challenge Map
+          </a>
+          {% if user.is_verified %}
+            <a href="{% url 'dashboard:analytics' %}" class="btn btn-outline-secondary btn-sm text-start">
+              <i class="bi bi-graph-up me-2"></i> Platform Analytics
+            </a>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Recent Activity -->
+      <div class="card card-civic p-4">
+        <h2 class="h6 fw-bold text-dark mb-3 pb-2 border-bottom">
+          <i class="bi bi-clock-history text-muted me-2"></i>Recent Activity
+        </h2>
+        {% if recent_activities %}
+          <div class="d-flex flex-column gap-2">
+            {% for act in recent_activities %}
+              <div class="small pb-2 border-bottom">
+                <div class="fw-semibold text-dark">{{ act.title }}</div>
+                <span class="text-muted text-xs">{{ act.created_at|timesince }} ago</span>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="small text-muted mb-0">No recent activity recorded.</p>
+        {% endif %}
+      </div>
+
+    </div>
+  </div>
+
+</div>
+{% endblock %}

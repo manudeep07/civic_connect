@@ -28,14 +28,11 @@
         <div class="mb-3">
           <label class="form-label small fw-semibold text-dark">I want to join as</label>
           <div class="role-segmented-control" role="group" aria-label="Role selection">
-            <button type="button" class="role-segmented-option btn p-2 border-0 active" data-role="student">
-              <i class="bi bi-mortarboard me-1"></i> Student
+            <button type="button" class="role-segmented-option btn p-2 border-0 active" data-role="citizen">
+              <i class="bi bi-person me-1"></i> Citizen / Student
             </button>
-            <button type="button" class="role-segmented-option btn p-2 border-0" data-role="university">
-              <i class="bi bi-building me-1"></i> University
-            </button>
-            <button type="button" class="role-segmented-option btn p-2 border-0" data-role="industry">
-              <i class="bi bi-briefcase me-1"></i> Industry
+            <button type="button" class="role-segmented-option btn p-2 border-0" data-role="organization">
+              <i class="bi bi-building me-1"></i> Organization
             </button>
           </div>
           <!-- Real select field synced with segmented control -->
@@ -47,7 +44,22 @@
           {% endif %}
         </div>
 
+<<<<<<< HEAD
         <div class="row g-3 mb-3" id="nameFieldsWrapper">
+=======
+        <div class="mb-3 d-none" id="orgTypeFieldWrapper">
+          <label for="{{ form.org_type.id_for_label }}" class="form-label small fw-semibold text-dark">
+            Organization Type <span class="text-danger">*</span>
+          </label>
+          {{ form.org_type }}
+          <div class="form-text small text-muted">Select whether you represent an academic university, industry enterprise, or government/NGO body.</div>
+          {% if form.org_type.errors %}
+            <div class="text-danger small mt-1">{{ form.org_type.errors.0 }}</div>
+          {% endif %}
+        </div>
+
+        <div class="row g-3 mb-3">
+>>>>>>> 9659299592f0d6659a6302bbd7bcf0fdeef0b045
           <div class="col-md-6">
             <label for="{{ form.first_name.id_for_label }}" class="form-label small fw-semibold">First Name <span class="text-danger">*</span></label>
             {{ form.first_name }}
@@ -86,7 +98,7 @@
             Institution / Company Name <span id="institutionRequiredMarker" class="text-danger d-none">*</span>
           </label>
           {{ form.institution_name }}
-          <div class="form-text small text-muted">Required for University and Industry accounts.</div>
+          <div class="form-text small text-muted">Required for Organization accounts.</div>
           {% if form.institution_name.errors %}
             <div class="text-danger small mt-1">{{ form.institution_name.errors.0 }}</div>
           {% endif %}
@@ -136,26 +148,37 @@ document.addEventListener('DOMContentLoaded', function() {
   const roleSelect = document.getElementById('id_role');
   const segmentedOptions = document.querySelectorAll('.role-segmented-option');
   const institutionMarker = document.getElementById('institutionRequiredMarker');
+<<<<<<< HEAD
   const nameFieldsWrapper = document.getElementById('nameFieldsWrapper');
   const firstNameInput = document.getElementById('id_first_name');
   const lastNameInput = document.getElementById('id_last_name');
+=======
+  const orgTypeWrapper = document.getElementById('orgTypeFieldWrapper');
+>>>>>>> 9659299592f0d6659a6302bbd7bcf0fdeef0b045
 
   function updateActiveOption(selectedVal) {
+    // Normalize if legacy role passed
+    let normalized = selectedVal;
+    if (selectedVal === 'student') normalized = 'citizen';
+    if (selectedVal === 'university' || selectedVal === 'industry') normalized = 'organization';
+
     segmentedOptions.forEach(opt => {
-      if (opt.getAttribute('data-role') === selectedVal) {
+      if (opt.getAttribute('data-role') === normalized) {
         opt.classList.add('active');
       } else {
         opt.classList.remove('active');
       }
     });
 
+    const isOrg = (normalized === 'organization');
     if (institutionMarker) {
-      if (selectedVal === 'university' || selectedVal === 'industry') {
+      if (isOrg) {
         institutionMarker.classList.remove('d-none');
       } else {
         institutionMarker.classList.add('d-none');
       }
     }
+<<<<<<< HEAD
 
     const hidesNames = selectedVal === 'university' || selectedVal === 'industry';
     if (nameFieldsWrapper) {
@@ -163,10 +186,19 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     if (firstNameInput) firstNameInput.required = !hidesNames;
     if (lastNameInput) lastNameInput.required = !hidesNames;
+=======
+    if (orgTypeWrapper) {
+      if (isOrg) {
+        orgTypeWrapper.classList.remove('d-none');
+      } else {
+        orgTypeWrapper.classList.add('d-none');
+      }
+    }
+>>>>>>> 9659299592f0d6659a6302bbd7bcf0fdeef0b045
   }
 
   if (roleSelect) {
-    updateActiveOption(roleSelect.value || 'student');
+    updateActiveOption(roleSelect.value || 'citizen');
 
     segmentedOptions.forEach(btn => {
       btn.addEventListener('click', function(e) {

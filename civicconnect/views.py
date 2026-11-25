@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from django.contrib.auth import get_user_model
-from django.db.models import Count
+from django.db.models import Count, Q
 
 from challenges.models import Challenge, Category
 from solutions.models import Solution
@@ -12,7 +12,7 @@ User = get_user_model()
 def home_view(request):
     """
     CivicConnect Landing Page.
-    Fetches real-time dynamic statistics, featured challenges, partnerships, and impact metrics.
+    Fetches real-time dynamic statistics, featured challenges, organizations, and impact metrics.
     """
     # Featured challenges (approved/in_progress, ordered by votes & recency)
     featured_challenges = Challenge.objects.filter(
@@ -25,8 +25,12 @@ def home_view(request):
     categories = Category.objects.all()[:8]
 
     # Partner institutions
-    featured_universities = User.objects.filter(role='university')[:4]
-    featured_industries = User.objects.filter(role='industry')[:4]
+    featured_universities = User.objects.filter(
+        Q(role='organization', org_type='university') | Q(role='university')
+    )[:4]
+    featured_industries = User.objects.filter(
+        Q(role='organization', org_type='industry') | Q(role='industry')
+    )[:4]
 
     # Active collaborative projects
     active_projects = Project.objects.filter(
@@ -38,7 +42,7 @@ def home_view(request):
         'total_challenges': Challenge.objects.filter(status__in=['approved', 'in_progress', 'solved']).count(),
         'total_solutions': Solution.objects.count(),
         'total_projects': Project.objects.count(),
-        'total_partners': User.objects.filter(role__in=['university', 'industry']).count(),
+        'total_partners': User.objects.filter(role__in=['organization', 'university', 'industry']).count(),
     }
 
     context = {
