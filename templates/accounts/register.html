@@ -44,9 +44,6 @@
           {% endif %}
         </div>
 
-<<<<<<< HEAD
-        <div class="row g-3 mb-3" id="nameFieldsWrapper">
-=======
         <div class="mb-3 d-none" id="orgTypeFieldWrapper">
           <label for="{{ form.org_type.id_for_label }}" class="form-label small fw-semibold text-dark">
             Organization Type <span class="text-danger">*</span>
@@ -58,17 +55,16 @@
           {% endif %}
         </div>
 
-        <div class="row g-3 mb-3">
->>>>>>> 9659299592f0d6659a6302bbd7bcf0fdeef0b045
+        <div class="row g-3 mb-3" id="nameFieldsWrapper">
           <div class="col-md-6">
-            <label for="{{ form.first_name.id_for_label }}" class="form-label small fw-semibold">First Name <span class="text-danger">*</span></label>
+            <label for="{{ form.first_name.id_for_label }}" class="form-label small fw-semibold">First Name</label>
             {{ form.first_name }}
             {% if form.first_name.errors %}
               <div class="text-danger small mt-1">{{ form.first_name.errors.0 }}</div>
             {% endif %}
           </div>
           <div class="col-md-6">
-            <label for="{{ form.last_name.id_for_label }}" class="form-label small fw-semibold">Last Name <span class="text-danger">*</span></label>
+            <label for="{{ form.last_name.id_for_label }}" class="form-label small fw-semibold">Last Name</label>
             {{ form.last_name }}
             {% if form.last_name.errors %}
               <div class="text-danger small mt-1">{{ form.last_name.errors.0 }}</div>
@@ -148,13 +144,10 @@ document.addEventListener('DOMContentLoaded', function() {
   const roleSelect = document.getElementById('id_role');
   const segmentedOptions = document.querySelectorAll('.role-segmented-option');
   const institutionMarker = document.getElementById('institutionRequiredMarker');
-<<<<<<< HEAD
+  const orgTypeWrapper = document.getElementById('orgTypeFieldWrapper');
   const nameFieldsWrapper = document.getElementById('nameFieldsWrapper');
   const firstNameInput = document.getElementById('id_first_name');
   const lastNameInput = document.getElementById('id_last_name');
-=======
-  const orgTypeWrapper = document.getElementById('orgTypeFieldWrapper');
->>>>>>> 9659299592f0d6659a6302bbd7bcf0fdeef0b045
 
   function updateActiveOption(selectedVal) {
     // Normalize if legacy role passed
@@ -178,15 +171,6 @@ document.addEventListener('DOMContentLoaded', function() {
         institutionMarker.classList.add('d-none');
       }
     }
-<<<<<<< HEAD
-
-    const hidesNames = selectedVal === 'university' || selectedVal === 'industry';
-    if (nameFieldsWrapper) {
-      nameFieldsWrapper.classList.toggle('d-none', hidesNames);
-    }
-    if (firstNameInput) firstNameInput.required = !hidesNames;
-    if (lastNameInput) lastNameInput.required = !hidesNames;
-=======
     if (orgTypeWrapper) {
       if (isOrg) {
         orgTypeWrapper.classList.remove('d-none');
@@ -194,7 +178,11 @@ document.addEventListener('DOMContentLoaded', function() {
         orgTypeWrapper.classList.add('d-none');
       }
     }
->>>>>>> 9659299592f0d6659a6302bbd7bcf0fdeef0b045
+    if (nameFieldsWrapper) {
+      nameFieldsWrapper.classList.toggle('d-none', isOrg);
+    }
+    if (firstNameInput) firstNameInput.disabled = isOrg;
+    if (lastNameInput) lastNameInput.disabled = isOrg;
   }
 
   if (roleSelect) {

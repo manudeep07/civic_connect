@@ -97,16 +97,6 @@ class UserRegistrationForm(forms.ModelForm):
         if password and confirm_password and password != confirm_password:
             self.add_error('confirm_password', "Passwords do not match.")
 
-<<<<<<< HEAD
-        if role == 'student':
-            if not cleaned_data.get('first_name'):
-                self.add_error('first_name', "First name is required for Student accounts.")
-            if not cleaned_data.get('last_name'):
-                self.add_error('last_name', "Last name is required for Student accounts.")
-
-        if role in ['university', 'industry'] and not institution:
-            self.add_error('institution_name', f"Institution/Company name is required for {role.capitalize()} role.")
-=======
         # If submitted with legacy university or industry, default org_type
         if raw_role in ['university', 'industry'] and not org_type:
             org_type = raw_role
@@ -119,7 +109,6 @@ class UserRegistrationForm(forms.ModelForm):
                 self.add_error('org_type', "Organization type is required for Organization role.")
         else:
             cleaned_data['org_type'] = None
->>>>>>> 9659299592f0d6659a6302bbd7bcf0fdeef0b045
 
         return cleaned_data
 
